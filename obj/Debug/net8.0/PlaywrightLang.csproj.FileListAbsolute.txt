@@ -24,3 +24,4 @@ C:\Users\Stuyp\RiderProjects\PlaywrightLang\obj\Debug\net8.0\PlaywrightLang.pdb
 C:\Users\Stuyp\RiderProjects\PlaywrightLang\obj\Debug\net8.0\PlaywrightLang.genruntimeconfig.cache
 C:\Users\Stuyp\RiderProjects\PlaywrightLang\obj\Debug\net8.0\ref\PlaywrightLang.dll
 C:\Users\Stuyp\RiderProjects\PlaywrightLang\bin\Debug\net8.0\script.pw
+C:\Users\Stuyp\RiderProjects\PlaywrightLang\obj\Debug\net8.0\PlaywrightLang.sourcelink.json

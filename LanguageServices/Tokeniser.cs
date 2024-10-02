@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Security.Principal;
 
 namespace PlaywrightLang.LanguageServices;
 
@@ -48,6 +49,9 @@ public class Tokeniser
                 case '/':
                     tokens.Add(new Token(TokenType.Divide));
                     break;
+                case ':':
+                    tokens.Add(new Token(TokenType.Colon));
+                    break;
                 default: break;
             }
             // handle string literals
@@ -77,11 +81,22 @@ public class Tokeniser
 
                 switch (_bufCurrent)
                 {
-                    case "Fin":
+                    case "fin":
                         tokens.Add(new Token(TokenType.Exit));
                         break;
+                    case "actor":
+                        tokens.Add(new Token(TokenType.Actor));
+                        break;
+                    // like a routine for the user to execute
+                    case "scene":
+                        tokens.Add(new Token(TokenType.Scene));
+                        break;
+                    // equivalent to '=' in other languages
+                    case "means": 
+                        tokens.Add(new Token(TokenType.Assignment));
+                        break;
                     default:
-                        tokens.Add(new Token(TokenType.VariableName, _bufCurrent));
+                        tokens.Add(new Token(TokenType.Name, _bufCurrent));
                         break;
                 }
                 _bufCurrent = "";
@@ -130,7 +145,11 @@ public enum TokenType
     Minus, 
     Multiply,
     Divide,
-    VariableName,
+    Name,
+    Scene,
+    Actor,
+    Colon,
+    Assignment
 }
 
 public struct Token
