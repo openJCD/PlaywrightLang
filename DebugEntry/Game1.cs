@@ -12,6 +12,7 @@ internal class Game1 : Game
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
     private Tokeniser tokeniser;
+    private PlaywrightState state;
     public Game1()
     {
         _graphics = new GraphicsDeviceManager(this);
@@ -21,10 +22,8 @@ internal class Game1 : Game
 
     protected override void Initialize()
     {
-        tokeniser = new Tokeniser("script.pw");
-        List<Token> tokens = tokeniser.Tokenise();
-        Console.WriteLine("Tokens: ");
-        tokens.ForEach(t => Console.WriteLine(t.Type.ToString() + " " + t.Value?.ToString()));
+        state = new PlaywrightState();
+        state.Parse();
         base.Initialize();
     }
 

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace PlaywrightLang.LanguageServices;
 
@@ -9,15 +10,19 @@ public class PlaywrightState
     private Dictionary<string, PwObject> Objects = new();
     public PlaywrightState() { }
 
-    public List<Token> LoadTokenise(string path)
+    List<Token> LoadTokenise(string path)
     {
         tokeniser = new Tokeniser(path);
-        return tokeniser.Tokenise();
+        Console.WriteLine("Tokens: ");
+        List<Token> tokens = tokeniser.Tokenise();
+        tokens.ForEach(t => Console.WriteLine(t.Type.ToString() + " " + t.Value?.ToString()));
+
+        return tokens;
     }
 
     public void Parse()
     {
-        parser = new Parser();
+        parser = new Parser(LoadTokenise("script.pw"));
     }
 
     public T GetVariable<T>(string name)

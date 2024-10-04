@@ -137,19 +137,23 @@ public class Tokeniser
 
 public enum TokenType
 {
-    Exit,
-    StringLiteral,
-    IntLiteral,
-    Newline,
-    Plus,
-    Minus, 
-    Multiply,
-    Divide,
-    Name,
-    Scene,
-    Actor,
-    Colon,
-    Assignment
+    Null, // used to signify the end of a list of tokens
+    Exit, // fin
+    StringLiteral, // "<string of letters>"
+    IntLiteral, // <any string of numbers with no decimal>
+    Newline, // \n
+    Plus, // +
+    Minus, // -
+    Multiply,// *
+    Divide, // /
+    Exponent, // ^
+    Name, // <non-predefined token name>
+    Scene, // scene
+    Actor, // actor
+    Colon, // :
+    Assignment, // means
+    LParen, // (
+    RParen  // )
 }
 
 public struct Token
@@ -161,10 +165,10 @@ public struct Token
     {
         Type = type;
     }
-
     public Token(TokenType type, string? value)
     {
         Type = type;
         Value = value;
     }
+    public static Token None => new Token(TokenType.Null);
 }
