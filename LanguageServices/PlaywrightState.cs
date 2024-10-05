@@ -16,7 +16,6 @@ public class PlaywrightState
         Console.WriteLine("Tokens: ");
         List<Token> tokens = tokeniser.Tokenise();
         tokens.ForEach(t => Console.WriteLine(t.Type.ToString() + " " + t.Value?.ToString()));
-
         return tokens;
     }
 

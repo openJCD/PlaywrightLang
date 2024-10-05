@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 namespace PlaywrightLang.LanguageServices;
 
-abstract class NodeExpr
+public abstract class NodeExpr
 {
     public bool IsLeaf { get; private set; }
     private NodeExpr? l;
@@ -12,7 +12,7 @@ abstract class NodeExpr
 
     public NodeExpr GetLeft()
     {
-        return l;
+        return l.GetLeft();
     }
 
     public Token Evaluate()
@@ -31,10 +31,17 @@ abstract class NodeExpr
     }
 }
 
-struct IntNodeExpr
+public class IntLeaf : NodeExpr
 {
-    private Token t;
+    public new bool IsLeaf => true;
+    public int Value => int.Parse(Token.Value);
 }
+
+public class VariableLeaf : NodeExpr
+{
+    public new bool IsLeaf => true;
+    public string Name => Token.Value;
+} 
 public class Parser
 {
     public AST AbstractSyntaxTree { get; private set; }
@@ -44,29 +51,23 @@ public class Parser
     {
         _tokens = tokens;
     }
-
-    AST BuildAbstractSyntaxTree()
-    {
-        // do precedence stuff : go through the list till you find a pattern matching 
-        
-        int index_lr = 0;
-        AST tree = new AST();
-        
-        
-        while (Peek().Type != TokenType.Null)
-        {
-            Token consumed_token = Consume();
-            
-        }
-
-        return tree;
-    }
-
     Token ComputeNumber()
     {
+
         while (Peek().Type != TokenType.Null)
         {
+            NodeExpr left_current;
             Token consumed_token = Consume();
+            NodeExpr right_current;
+            
+            if (consumed_token.Type == TokenType.IntLiteral)
+            {
+                if (Peek(-1).Type == TokenType.Null)
+                {
+                    left_current = new IntLeaf();
+                }
+            }
+            
         }
 
         return Token.None;
@@ -81,6 +82,6 @@ public class Parser
         if (_tokenIndex + ahead >= _tokens.Count || _tokenIndex + ahead < 0)
             return Token.None;
         
-        return _tokens.ElementAt(_tokenIndex);
+        return _tokens.ElementAt(_tokenIndex + ahead);
     }
 }

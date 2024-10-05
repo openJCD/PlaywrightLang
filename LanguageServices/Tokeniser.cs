@@ -52,6 +52,12 @@ public class Tokeniser
                 case ':':
                     tokens.Add(new Token(TokenType.Colon));
                     break;
+                case '(':
+                    tokens.Add(new Token(TokenType.LParen));
+                    break;
+                case ')':
+                    tokens.Add(new Token(TokenType.RParen));
+                    break;
                 default: break;
             }
             // handle string literals
