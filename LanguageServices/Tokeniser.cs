@@ -127,11 +127,11 @@ public class Tokeniser
         return tokens;
     }
     
-    char Peek(int ahead = 1)
+    char Peek(int ahead = 0)
     {
         if (_readerIndex + ahead >= _codeChars.Length)
             return char.MinValue;
-        return _codeChars.ElementAtOrDefault(_readerIndex);
+        return _codeChars.ElementAtOrDefault(_readerIndex + ahead);
     }
 
     public char Consume()

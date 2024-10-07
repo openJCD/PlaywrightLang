@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 namespace PlaywrightLang.LanguageServices;
 
+#region nodes
 public abstract class NodeExpr
 {
     public bool IsLeaf { get; private set; }
@@ -23,7 +24,7 @@ public abstract class NodeExpr
         string lv = l.Token.Value;
         if (rt == TokenType.Multiply)
         {
-            return new Token();
+            return new Token(TokenType.IntLiteral, rv);
         }
 
         // replace this
@@ -42,8 +43,17 @@ public class VariableLeaf : NodeExpr
     public new bool IsLeaf => true;
     public string Name => Token.Value;
 } 
+#endregion //nodes
 public class Parser
 {
+    private readonly Dictionary<TokenType, int> BinaryOps =
+        new Dictionary<TokenType, int>
+        {
+            { TokenType.Plus, 1 },
+            { TokenType.Minus, 1 },
+            { TokenType.Multiply, 2 },
+            { TokenType.Divide, 2 }
+        };
     public AST AbstractSyntaxTree { get; private set; }
     private List<Token> _tokens;
     private int _tokenIndex;
@@ -51,9 +61,8 @@ public class Parser
     {
         _tokens = tokens;
     }
-    Token ComputeNumber()
+    Token ComputeExpression(int initialPrecedence = 1)
     {
-
         while (Peek().Type != TokenType.Null)
         {
             NodeExpr left_current;
@@ -67,17 +76,30 @@ public class Parser
                     left_current = new IntLeaf();
                 }
             }
-            
         }
-
         return Token.None;
     }
+
+    Token ComputeNumber()
+    {
+        // TODO: change this
+        return new Token();
+    }
+    
+    /// <summary>
+    /// Increment the current token index and get token
+    /// </summary>
+    /// <returns>Current token before index is incremented</returns>
     Token Consume()
     {
         return _tokens.ElementAt(_tokenIndex++);
     }
-
-    Token Peek(int ahead = 1)
+    /// <summary>
+    /// Look at the token with the given index offset.
+    /// </summary>
+    /// <param name="ahead">Index offset to look at (can be negative)</param>
+    /// <returns>Peeked token, or Token.None if EOF encountered</returns>
+    Token Peek(int ahead = 0)
     {
         if (_tokenIndex + ahead >= _tokens.Count || _tokenIndex + ahead < 0)
             return Token.None;
