@@ -58,6 +58,13 @@ public class Tokeniser
                 case ')':
                     tokens.Add(new Token(TokenType.RParen));
                     break;
+                case '.':
+                    tokens.Add(new Token(TokenType.Dot));
+                    break;
+                case '#':
+                    while (Consume() != '\n') { /*do nothing*/ }
+                    tokens.Add(new Token(TokenType.Comment));
+                    break;
                 default: break;
             }
             // handle string literals
@@ -143,7 +150,7 @@ public class Tokeniser
 
 public enum TokenType
 {
-    Null, // used to signify the end of a list of tokens
+    Null, // used to signify the end of a list of tokens (EOF)
     Exit, // fin
     StringLiteral, // "<string of letters>"
     IntLiteral, // <any string of numbers with no decimal>
@@ -159,7 +166,9 @@ public enum TokenType
     Colon, // :
     Assignment, // means
     LParen, // (
-    RParen  // )
+    RParen, // )
+    Dot,// .
+    Comment // #<comment>
 }
 
 public struct Token

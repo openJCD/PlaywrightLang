@@ -8,6 +8,6 @@
 \\
 \text means \to assignment
 \\
-\text name : 
+\text name
 \end{align}
 $$

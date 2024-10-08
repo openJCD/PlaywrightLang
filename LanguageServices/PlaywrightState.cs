@@ -22,11 +22,6 @@ public class PlaywrightState
     public void Parse()
     {
         parser = new Parser(LoadTokenise("script.pw"));
-    }
-
-    public T GetVariable<T>(string name)
-    {
-        Objects.TryGetValue(name, out PwObject value);
-        return value.Get<T>();
+        parser.DoParse();
     }
 }
