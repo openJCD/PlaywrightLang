@@ -32,6 +32,7 @@ public class Add : Node
         {
             int l_val = int.Parse(Left.Evaluate().ToString());
             int r_val = int.Parse(Right.Evaluate().ToString());
+            Parser.Log($"Addition: {ToString()}");
             return (l_val + r_val);
         }
         catch (Exception exception)
@@ -42,7 +43,7 @@ public class Add : Node
 
     public override string ToString()
     {
-        return "(" + Left.Evaluate().ToString() + " + " + Right.Evaluate().ToString() + ")";
+        return $"({Left} + {Right})";
     }
 }
 
@@ -82,7 +83,7 @@ public class Subtract : Node
             int l_val = int.Parse(Left.Evaluate().ToString());
             int r_val = int.Parse(Right.Evaluate().ToString());
             Parser.Log($"Subtraction: {ToString()}");
-            return new Token(TokenType.IntLiteral, (l_val - r_val).ToString());
+            return (l_val - r_val);
         }
         catch
         {
@@ -91,7 +92,7 @@ public class Subtract : Node
     }
     public override string ToString()
     {
-        return "(" + Left.Evaluate().ToString() + " - " + Right.Evaluate().ToString() + ")";
+        return "(" + Left.ToString() + " - " + Right.ToString() + ")";
     }
 }
 public class Parser
@@ -122,6 +123,8 @@ public class Parser
                     
                     switch (opr.Type)
                     {
+                        // each statement here technically has the wrong order - first should be a ParseExpression, then a ParseTerm.
+                        // this will hopefully be fixed later when ParseTerm and ParseFactor are implemented. 
                         case TokenType.Plus:
                             return new Add(new Integer(int.Parse(l_val.Value)), ParseExpression());
                         case TokenType.Minus:
