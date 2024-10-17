@@ -1,3 +1,3 @@
 ﻿variable234 means "Hello World!"
-1+2+3*4 # this should calculate to 15
+1+2+3 #6
 fin

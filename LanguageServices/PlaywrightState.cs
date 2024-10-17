@@ -7,7 +7,7 @@ public class PlaywrightState
 {
     private Tokeniser tokeniser;
     private Parser parser;
-    private Dictionary<string, PwObject> Objects = new();
+    private Dictionary<string, PwObject> Globals = new();
     public PlaywrightState() { }
 
     List<Token> LoadTokenise(string path)
@@ -22,6 +22,7 @@ public class PlaywrightState
     public void Parse()
     {
         parser = new Parser(LoadTokenise("script.pw"));
-        parser.DoParse();
+        Node tree = parser.ParseExpression();
+        Parser.Log(tree.Evaluate().ToString());
     }
 }

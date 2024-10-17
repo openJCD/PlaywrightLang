@@ -238,25 +238,24 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Stuyp\\.nuget\\packages\\": {}
+    "/home/openjcd/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Stuyp\\RiderProjects\\PlaywrightLang\\PlaywrightLang.csproj",
+      "projectUniqueName": "/home/openjcd/RiderProjects/PlaywrightLang/PlaywrightLang.csproj",
       "projectName": "PlaywrightLang",
-      "projectPath": "C:\\Users\\Stuyp\\RiderProjects\\PlaywrightLang\\PlaywrightLang.csproj",
-      "packagesPath": "C:\\Users\\Stuyp\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Stuyp\\RiderProjects\\PlaywrightLang\\obj\\",
+      "projectPath": "/home/openjcd/RiderProjects/PlaywrightLang/PlaywrightLang.csproj",
+      "packagesPath": "/home/openjcd/.nuget/packages/",
+      "outputPath": "/home/openjcd/RiderProjects/PlaywrightLang/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\Stuyp\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "/home/openjcd/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
       ],
       "sources": {
-        "C:\\Users\\Stuyp\\Documents\\nuget": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -273,7 +272,7 @@
       "restoreAuditProperties": {
         "enableAudit": "true",
         "auditLevel": "low",
-        "auditMode": "all"
+        "auditMode": "direct"
       }
     },
     "frameworks": {
@@ -300,30 +299,12 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[8.0.8, 8.0.8]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Host.win-x64",
-            "version": "[8.0.8, 8.0.8]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Ref",
-            "version": "[8.0.8, 8.0.8]"
-          },
-          {
-            "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[8.0.8, 8.0.8]"
-          }
-        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.100-rc.1.24452.12/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/home/openjcd/.dotnet/sdk/8.0.401/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
