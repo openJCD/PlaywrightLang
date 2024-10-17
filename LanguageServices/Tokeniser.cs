@@ -72,9 +72,16 @@ public class Tokeniser
             {
                 while (Peek() != '"' && Peek() != '\0')
                 {
-                    _bufCurrent += Consume();
+                    char _charCurrent = Consume();
+                    _bufCurrent += _charCurrent;
                     if (Peek() == '\n')
                         Console.Error.WriteLine("Fatal error: Unterminated one-line string.");
+                    // handle escape characters (does not work if they are not separated by a space.)
+                    if (Peek() == '\\')
+                    {
+                        Consume();
+                        _bufCurrent += Consume();
+                    } 
                 }
 
                 Consume();
@@ -102,11 +109,23 @@ public class Tokeniser
                         break;
                     // like a routine for the user to execute
                     case "scene":
-                        tokens.Add(new Token(TokenType.Scene));
+                        tokens.Add(new Token(TokenType.SceneBlock));
                         break;
                     // equivalent to '=' in other languages
                     case "means": 
                         tokens.Add(new Token(TokenType.Assignment));
+                        break;
+                    case "glossary":
+                        tokens.Add(new Token(TokenType.GlossaryBlock));
+                        break;
+                    case "cast":
+                        tokens.Add(new Token(TokenType.CastBlock));
+                        break;
+                    case "end":
+                        tokens.Add(new Token(TokenType.EndBlock));
+                        break;
+                    case "as":
+                        tokens.Add(new Token(TokenType.As));
                         break;
                     default:
                         tokens.Add(new Token(TokenType.Name, _bufCurrent));
@@ -152,7 +171,7 @@ public enum TokenType
 {
     Null, // used to signify the end of a list of tokens (EOF)
     Exit, // fin
-    StringLiteral, // "<string of letters>"
+    StringLiteral, // "<string of characters>"
     IntLiteral, // <any string of numbers with no decimal>
     Newline, // \n
     Plus, // +
@@ -160,15 +179,19 @@ public enum TokenType
     Multiply,// *
     Divide, // /
     Exponent, // ^
-    Name, // <non-predefined token name>
-    Scene, // scene
+    Name, // <user-defined token name>
+    SceneBlock, // scene
+    GlossaryBlock, // glossary 
+    CastBlock,
     Actor, // actor
     Colon, // :
     Assignment, // means
     LParen, // (
     RParen, // )
     Dot,// .
-    Comment // #<comment>
+    Comment, // #<comment>
+    EndBlock, // end
+    As // as -> (used in the cast block to denote a type of actor, for example 'tree as prop')
 }
 
 public struct Token

@@ -109,7 +109,6 @@ public class Parser
     }
     public Node ParseExpression()
     {
-        
         // Node left = ParseTerm() - traverse the tree recursively!
         // temporary code to test addition capabilities of language
         while (Peek().Type != TokenType.Null)
@@ -120,7 +119,6 @@ public class Parser
                 Token opr = Consume();
                 if (IsBinop(opr.Type))
                 {
-                    
                     switch (opr.Type)
                     {
                         // each statement here technically has the wrong order - first should be a ParseExpression, then a ParseTerm.
@@ -129,10 +127,8 @@ public class Parser
                             return new Add(new Integer(int.Parse(l_val.Value)), ParseExpression());
                         case TokenType.Minus:
                             return new Subtract(new Integer(int.Parse(l_val.Value)), ParseExpression());
-                        case TokenType.IntLiteral:
-                            return new Integer(int.Parse(l_val.Value));
                         default:
-                            Log($"Problem: no operator @ {_tokenIndex}, instead found {opr}");
+                            Log($"Problem: expected 'Plus' or 'Minus' @ {_tokenIndex}, instead found {opr}");
                             break;
                     }
                 }
