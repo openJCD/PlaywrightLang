@@ -24,7 +24,10 @@ internal class Game1 : Game
     protected override void Initialize()
     {
         state = new PlaywrightState();
-        state.Parse();
+        state.ParseFile("script.pw");
+        //state.ParseString("2 * ( 100 * 2 ) #should eval to 400 \n");
+        //state.ParseString("3 * ( 100 * 2 ) #should eval to 600");
+        //state.ParseString("5 + (-200 - 3) * 2 #should eval to -401");
         base.Initialize();
     }
 

@@ -16,12 +16,9 @@ public class Tokeniser
     private string _currentLine;
     private int _readerIndex;
     
-    public Tokeniser(string filepath)
+    public Tokeniser(string data)
     {
-        _filepath = filepath;
-        Stream s = File.OpenRead(filepath);
-        StreamReader sr = new StreamReader(s);
-        _codeRaw = sr.ReadToEnd();
+        _codeRaw = data;
         _codeChars = _codeRaw.ToCharArray();
     }
 
@@ -62,8 +59,8 @@ public class Tokeniser
                     tokens.Add(new Token(TokenType.Dot));
                     break;
                 case '#':
-                    while (Consume() != '\n') { /*do nothing*/ }
-                    tokens.Add(new Token(TokenType.Comment));
+                    while (Peek() != '\n' && Peek() != '\0')
+                    { Consume(); }
                     break;
                 default: break;
             }
@@ -189,7 +186,6 @@ public enum TokenType
     LParen, // (
     RParen, // )
     Dot,// .
-    Comment, // #<comment>
     EndBlock, // end
     As // as -> (used in the cast block to denote a type of actor, for example 'tree as prop')
 }
@@ -208,5 +204,6 @@ public struct Token
         Type = type;
         Value = value;
     }
+    public override string ToString() => $"{Type}: {Value}";
     public static Token None => new Token(TokenType.Null);
 }

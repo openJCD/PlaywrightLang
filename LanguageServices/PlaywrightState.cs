@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace PlaywrightLang.LanguageServices;
 
@@ -10,18 +11,36 @@ public class PlaywrightState
     private Dictionary<string, PwObject> Globals = new();
     public PlaywrightState() { }
 
-    List<Token> LoadTokenise(string path)
+    List<Token> LoadFile(string path)
     {
-        tokeniser = new Tokeniser(path);
-        Console.WriteLine("Tokens: ");
+        Stream s = File.OpenRead(path);
+        StreamReader sr = new StreamReader(s);
+        tokeniser = new Tokeniser(sr.ReadToEnd());
+        Console.WriteLine($"Playwright Lexer: File {path} -> Tokens: ");
         List<Token> tokens = tokeniser.Tokenise();
-        tokens.ForEach(t => Console.WriteLine(t.Type.ToString() + " " + t.Value?.ToString()));
+        tokens.ForEach(t => Console.WriteLine($" - {t.Type} {t.Value}"));
         return tokens;
     }
 
-    public void Parse()
+    List<Token> LoadString(string s)
     {
-        parser = new Parser(LoadTokenise("script.pw"));
+        tokeniser = new Tokeniser(s);
+        Console.WriteLine("• Playwright Lexer: String Input -> Tokens: ");
+        List<Token> tokens = tokeniser.Tokenise();
+        tokens.ForEach(t => Console.WriteLine($" - {t.Type} {t.Value}"));
+        return tokens;
+    }
+    
+    public void ParseString(string input)
+    {
+        parser = new Parser(LoadString(input));
+        Node tree = parser.ParseExpression();
+        Parser.Log(tree.Evaluate().ToString());
+    }
+
+    public void ParseFile(string filepath)
+    {
+        parser = new Parser(LoadFile(filepath));
         Node tree = parser.ParseExpression();
         Parser.Log(tree.Evaluate().ToString());
     }

@@ -37,7 +37,8 @@ public class Add : Node
         }
         catch (Exception exception)
         {
-            throw new Exception($"Unable to parse expression: {Left.Evaluate().ToString()} + {Right.Evaluate().ToString()}: {exception.Message}.");
+            Parser.Log($"Unable to parse expression: {Left} + {Right}: {exception.Message}.");
+            return null;
         }
     }
 
@@ -46,26 +47,6 @@ public class Add : Node
         return $"({Left} + {Right})";
     }
 }
-
-public class Integer : Node {
-    
-    public int Value { get; private set; }
-
-    public Integer(int value)
-    {
-        Value = value;
-    }
-    public override object Evaluate()
-    {
-        return Value;
-    }
-
-    public override string ToString()
-    {
-        return Value.ToString();
-    }
-}
-
 public class Subtract : Node
 {
     public readonly Node Left;
@@ -95,13 +76,123 @@ public class Subtract : Node
         return "(" + Left.ToString() + " - " + Right.ToString() + ")";
     }
 }
+public class Negative : Node
+{
+    public readonly Node Term;
+
+    public Negative(Node term)
+    {
+        this.Term = term;
+    }
+
+    public override object Evaluate()
+    {
+        return -(int)Term.Evaluate();
+    }
+
+    public override string ToString()
+    {
+        return $"-({Term})";
+    }
+}
+public class Multply : Node
+{
+    public readonly Node Left;
+    public readonly Node Right;
+
+    public Multply(Node left, Node right)
+    {
+        this.Left = left;
+        this.Right = right;
+    }
+
+    public override object Evaluate()
+    {
+        Parser.Log($"Multiply: {this}");
+        return (int)Left.Evaluate() * (int)Right.Evaluate();
+    }
+
+    public override string ToString()
+    {
+        return $"({Left} * {Right})";
+    }
+}
+public class Divide : Node
+{
+    public readonly Node Left;
+    public readonly Node Right;
+
+    public Divide(Node left, Node right)
+    {
+        this.Left = left;
+        this.Right = right;
+    }
+    
+    public override object Evaluate()
+    {
+        Parser.Log($"Division: {this}");
+        return (int)Left.Evaluate() / (int)Right.Evaluate();
+    }
+
+    public override string ToString()
+    {
+        return $"({Left} / {Right})";
+    }
+}
+public class Name : Node
+{
+    public readonly string Identifier;
+
+    public Name(string identifier)
+    {
+        this.Identifier = identifier;
+    }
+    // change this to access some kind of stack!
+    public override object Evaluate()
+    {
+        Parser.Log($"Found Name: {Identifier}");
+        try
+        {
+            PwObject obj = Parser.Objects[Identifier];
+            if (obj.Type == PwObjectType.StringVariable)
+                return obj.Data.ToString();
+            if (obj.Type == PwObjectType.IntVariable)
+                return (int)obj.Data;
+        }
+        catch
+        {
+            Parser.Log($"Not implemented: tried to evaluate name.");
+        }
+        return null;
+    }
+    public override string ToString() => Identifier;
+}
+public class Integer : Node {
+    
+    public int Value { get; private set; }
+
+    public Integer(int value)
+    {
+        Value = value;
+    }
+    public override object Evaluate()
+    {
+        return Value;
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString();
+    }
+}
+
 public class Parser
 {
     private List<Token> _tokens;
     private int _tokenIndex;
     private int _currentLine=1;
     
-    public Dictionary<string, PwObject> Objects = new Dictionary<string, PwObject>();
+    internal static Dictionary<string, PwObject> Objects = new Dictionary<string, PwObject>();
     
     public Parser(List<Token> tokens)
     {
@@ -109,52 +200,85 @@ public class Parser
     }
     public Node ParseExpression()
     {
-        // Node left = ParseTerm() - traverse the tree recursively!
-        // temporary code to test addition capabilities of language
         while (Peek().Type != TokenType.Null)
-        {
-            Token l_val = Consume();
-            if (l_val.Type == TokenType.IntLiteral)
+        { 
+            Node l_val = ParseTerm();
+            while (Peek().Type != TokenType.Newline)
             {
-                Token opr = Consume();
-                if (IsBinop(opr.Type))
+                Token t_op = Consume();
+                switch (t_op.Type)
                 {
-                    switch (opr.Type)
-                    {
-                        // each statement here technically has the wrong order - first should be a ParseExpression, then a ParseTerm.
-                        // this will hopefully be fixed later when ParseTerm and ParseFactor are implemented. 
-                        case TokenType.Plus:
-                            return new Add(new Integer(int.Parse(l_val.Value)), ParseExpression());
-                        case TokenType.Minus:
-                            return new Subtract(new Integer(int.Parse(l_val.Value)), ParseExpression());
-                        default:
-                            Log($"Problem: expected 'Plus' or 'Minus' @ {_tokenIndex}, instead found {opr}");
-                            break;
-                    }
+                    // each statement here technically has the wrong order - first should be a ParseExpression, then a ParseTerm.
+                    // this will hopefully be fixed later when ParseTerm and ParseFactor are implemented. 
+                    case TokenType.Plus:
+                        return new Add(l_val, ParseTerm());
+                    case TokenType.Minus:
+                        return new Subtract(l_val, ParseTerm());
                 }
-                else
-                {
-                    return new Integer(int.Parse(l_val.Value));
-                }
+
                 if (Peek().Type == TokenType.Newline)
                 {
                     _currentLine++;
                     break;
                 }
             }
+            return l_val;
+
         }
-        Log("Reached EOF without finding an int literal.");
         return null;
     }
 
-    public void ParseTerm()
+    public Node ParseTerm()
     {
-        
+        while (Peek().Type != TokenType.Null)
+        {
+            Node l_val = ParseFactor();
+            while (Peek().Type != TokenType.Newline && Peek().Type != TokenType.Null)
+            {
+                Token next = Peek(0);
+                if (next.Type == TokenType.Multiply || next.Type == TokenType.Divide)
+                {
+                    next = Consume();
+                    switch (next.Type)
+                    {
+                        case TokenType.Multiply:
+                            return new Multply(l_val, ParseFactor());
+                        case TokenType.Divide:
+                            return new Divide(l_val, ParseFactor());
+                        default: break;
+                    }
+                }
+            }
+            return l_val;
+        } 
+        return null;
     }
 
-    public void ParseFactor()
+    public Node ParseFactor()
     {
-        
+        while (Peek().Type != TokenType.Newline && Peek().Type != TokenType.Null)
+        {
+            Token t_current = Consume();
+            switch (t_current.Type)
+            {
+                case TokenType.Minus:
+                    return new Negative(ParseFactor());
+                case TokenType.Name:
+                    return new Name(t_current.Value);
+                case TokenType.IntLiteral: 
+                    return new Integer(int.Parse(t_current.Value));
+                case TokenType.LParen:
+                    Node inner = ParseExpression();
+                    Token t_next = Consume();
+                    if (t_next.Type != TokenType.RParen)
+                    {
+                        ThrowError($"Expected ')', got {t_next.Type}");
+                        return null;
+                    }
+                    return inner;
+            }
+        }
+        return null;
     }
     
     /// <summary>
@@ -163,7 +287,9 @@ public class Parser
     /// <returns>Current token before index is incremented</returns>
     Token Consume()
     {
-        return _tokens.ElementAt(_tokenIndex++);
+        if (Peek(0).Type != TokenType.Null)
+            return _tokens.ElementAt(_tokenIndex++);
+        return Token.None;
     }
     /// <summary>
     /// Look at the token with the given index offset.
@@ -176,7 +302,7 @@ public class Parser
             return Token.None;
         return _tokens.ElementAt(_tokenIndex + ahead);
     }
-    public T GetVariable<T>(string name)
+    public static T GetVariable<T>(string name)
     {
         Objects.TryGetValue(name, out PwObject value);
         return value.Get<T>();
@@ -192,7 +318,6 @@ public class Parser
     {
         Console.WriteLine($"• Playwright Parser: {message}");
     }
-
     bool IsBinop(TokenType op)
     {
         return op == TokenType.Plus || op == TokenType.Minus || op == TokenType.Multiply || op == TokenType.Divide;
