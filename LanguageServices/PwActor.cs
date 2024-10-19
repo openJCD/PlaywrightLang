@@ -5,12 +5,17 @@
 /// Contains basic built-in methods - (for Playwright developer) Please try to keep members to a minimum for
 /// ease of use. 
 /// </summary>
-public interface PlaywrightActor
+public class PwActor
 {
     string Name { get; set; }
     int XPos { get; set; }
     int YPos { get; set; }
-    void Say(string dialogue);
-    void Ready();
-    void Destroy();
+
+    public PwActor(string name)
+    {
+        Name = name;
+    }
+    public virtual void Say(string dialogue) {}
+    public virtual void Ready() {}
+    public virtual void Destroy() {}
 }

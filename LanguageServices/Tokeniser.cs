@@ -89,11 +89,11 @@ public class Tokeniser
             if (!char.IsLetterOrDigit(ch_consumed))
                 continue;
             
-            if (char.IsLetter(ch_consumed))
+            if (char.IsLetter(ch_consumed) || ch_consumed == '_')
             {
                 _bufCurrent += ch_consumed;
                 
-                while (char.IsLetterOrDigit(Peek()))
+                while (char.IsLetterOrDigit(Peek()) || Peek() == '_')
                     _bufCurrent += Consume();
 
                 switch (_bufCurrent)
@@ -117,6 +117,9 @@ public class Tokeniser
                         break;
                     case "cast":
                         tokens.Add(new Token(TokenType.CastBlock));
+                        break;
+                    case "sequence":
+                        tokens.Add(new Token(TokenType.SequenceBlock));
                         break;
                     case "end":
                         tokens.Add(new Token(TokenType.EndBlock));
@@ -179,7 +182,8 @@ public enum TokenType
     Name, // <user-defined token name>
     SceneBlock, // scene
     GlossaryBlock, // glossary 
-    CastBlock,
+    CastBlock, // cast
+    SequenceBlock, // sequence (equivalent to function)
     Actor, // actor
     Colon, // :
     Assignment, // means

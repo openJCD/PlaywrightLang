@@ -18,7 +18,12 @@ public class PlaywrightState
         tokeniser = new Tokeniser(sr.ReadToEnd());
         Console.WriteLine($"Playwright Lexer: File {path} -> Tokens: ");
         List<Token> tokens = tokeniser.Tokenise();
-        tokens.ForEach(t => Console.WriteLine($" - {t.Type} {t.Value}"));
+        int count = 0;
+        tokens.ForEach(t =>
+        {
+            Console.WriteLine($" {count} - {t.Type} {t.Value}");
+            count++;
+        });
         return tokens;
     }
 
@@ -27,24 +32,24 @@ public class PlaywrightState
         tokeniser = new Tokeniser(s);
         Console.WriteLine("• Playwright Lexer: String Input -> Tokens: ");
         List<Token> tokens = tokeniser.Tokenise();
-        tokens.ForEach(t => Console.WriteLine($" - {t.Type} {t.Value}"));
+        int count = 0;
+        tokens.ForEach(t =>
+        {
+            Console.WriteLine($" {count} - {t.Type} {t.Value}");
+            count++;
+        });
         return tokens;
     }
     
-    public Node ParseString(string input)
+    public void ParseString(string input)
     {
-        parser = new Parser(LoadString(input));
-        Node tree = parser.ParseExpression();
-        string result = tree.ToString();
-        Parser.Log(result);
-        return tree;
+        parser = new Parser(LoadString(input), this);
+        parser.ParseChunk();
     }
 
-    public Node ParseFile(string filepath)
+    public void ParseFile(string filepath)
     {
-        parser = new Parser(LoadFile(filepath));
-        Node tree = parser.ParseExpression();
-        Parser.Log(tree.Evaluate().ToString());
-        return tree;
+        parser = new Parser(LoadFile(filepath), this);
+        parser.ParseChunk();
     }
 }

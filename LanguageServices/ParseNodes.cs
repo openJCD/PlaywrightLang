@@ -9,6 +9,32 @@ public abstract class Node
     public abstract override string ToString();
 }
 
+public class Chunk : Node
+{
+    List<Node> _nodes = new List<Node>();
+    public Chunk(params Node[] nodes)
+    {
+        foreach (Node nd in nodes)
+        {
+            _nodes.Add(nd);
+        }
+    }
+
+    public override object Evaluate()
+    {
+        foreach (Node _nd in _nodes)
+        {
+            _nd.Evaluate(); 
+        }
+        return 1;
+    }
+
+    public override string ToString()
+    {
+        return Convert.ToString(_nodes);
+    }
+}
+public class Block : Chunk {}
 public class Add : Node
 {
     // replace this with expression node
@@ -131,8 +157,12 @@ public class Name(string identifier, Parser parseState) : Node
     public override object Evaluate()
     {
         Parser.Log($"Found Name: {Identifier}");
+        
         if (!_parseState.VariableExists(Identifier))
-            _parseState.ThrowError($"Variable {identifier} not exist in current context.");
+        {
+            _parseState.ThrowError($"Variable, function or sequence {identifier} not exist in current context.");
+            return null;
+        }
         return _parseState.Globals[Identifier].Data;
     }
     public override string ToString() => Identifier;
@@ -151,4 +181,12 @@ public class Integer(int value) : Node
     {
         return Value.ToString();
     }
+}
+public class StringLit(string value) : Node
+{
+    public readonly string Value = value;
+
+    public override object Evaluate() => Value;
+
+    public override string ToString() => $"\"{Value}\"";
 }

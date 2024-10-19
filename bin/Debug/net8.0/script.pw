@@ -1,3 +1,8 @@
-﻿(1 + 2) * 3    # -> 9 
-1 + 2 * 3      # -> 7
-50 + 50 - 5    # -> 95 
+﻿glossary:
+    intro means "Welcome to Playwright!"
+    calculation_1 means ( 2 * 2 ) - 5 + (-60)
+end
+glossary:
+    intro_2 means "This is an example program to demonstrate current capabilities"
+    calculation_4 means -(5*10) / 2
+end

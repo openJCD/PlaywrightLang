@@ -7,7 +7,6 @@ public abstract class Node
 
 public class Add : Node
 {
-    // replace this with expression node
     public readonly Node Left;
     
     public readonly Node Right;

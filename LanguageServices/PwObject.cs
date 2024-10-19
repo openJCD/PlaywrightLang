@@ -8,6 +8,7 @@ public class PwObject
     public PwObjectType Type { get; protected set; }
     public object Data { get; protected set; }
 
+    public PwObject() {}
     public PwObject(string name, PwObjectType type, object data)
     {
         Name = name;
