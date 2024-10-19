@@ -26,19 +26,19 @@ public class Parser
         while (Peek().Type != (TokenType.Null))
         { 
             Node l_val = ParseTerm();
+            Node r_val = null;
             while (_currentToken.Type is TokenType.Plus or TokenType.Minus)
             {
-                Token t_op = Consume();
-                switch (t_op.Type)
+                Token op = Consume();
+                switch (op.Type)
                 {
-                    // each statement here technically has the wrong order - first should be a ParseExpression, then a ParseTerm.
-                    // this will hopefully be fixed later when ParseTerm and ParseFactor are implemented. 
                     case TokenType.Plus:
-                        return new Add(l_val, ParseTerm());
+                        l_val = new Add(l_val, ParseTerm());
+                        break;
                     case TokenType.Minus:
-                        return new Subtract(l_val, ParseTerm());
+                        l_val = new Subtract(l_val, ParseTerm());
+                        break;
                 }
-
             }
             return l_val; 
         }
@@ -49,47 +49,45 @@ public class Parser
     
     public Node ParseTerm()
     {
-        while (Peek().Type != TokenType.Null)
+        Node l_val = ParseFactor();
+        while (_currentToken.Type == TokenType.Multiply || _currentToken.Type == TokenType.Divide)
         {
-            Node l_val = ParseFactor();
-            while (_currentToken.Type == TokenType.Multiply || _currentToken.Type == TokenType.Divide)
+            Token op = Consume();
+            switch (op.Type)
             {
-                Token op = Consume();
-                switch (op.Type)
-                {
-                    case TokenType.Multiply:
-                        return new Multiply(l_val, ParseFactor());
-                    case TokenType.Divide:
-                        return new Divide(l_val, ParseFactor());
-                    default: break;
-                }
+                case TokenType.Multiply:
+                    l_val = new Multiply(l_val, ParseFactor());
+                    break;
+                case TokenType.Divide:
+                    l_val = new Divide(l_val, ParseFactor());
+                    break;
+                default: break;
             }
-            return l_val;
-        } 
-        return null;
+        }
+        return l_val;
     }
 
     public Node ParseFactor()
     {
         Token t_current = Consume();
-         switch (t_current.Type)
-         {
-             case TokenType.Minus:
-                 return new Negative(ParseFactor());
-             case TokenType.Name:
-                 return new Name(t_current.Value, this);
-             case TokenType.IntLiteral: 
-                 return new Integer(int.Parse(t_current.Value));
-             case TokenType.LParen:
-                 Node inner = ParseExpression();
-                 Token t_next = Consume();
-                 if (t_next.Type != TokenType.RParen)
-                 {
-                     ThrowError($"Expected ')', got {t_next.Type}");
-                     return null;
-                 }
-                 return inner;
-         }
+        switch (t_current.Type)
+        {
+            case TokenType.Minus:
+                return new Negative(ParseFactor());
+            case TokenType.Name: 
+                return new Name(t_current.Value, this);
+            case TokenType.IntLiteral:
+                return new Integer(int.Parse(t_current.Value));
+            case TokenType.LParen:
+                Node inner = ParseExpression();
+                Token t_next = Consume();
+                if (t_next.Type != TokenType.RParen)
+                {
+                    ThrowError($"Expected ')', got {t_next.Type}");
+                    return null;
+                }
+                return inner;
+        }
         
         return null;
     }
