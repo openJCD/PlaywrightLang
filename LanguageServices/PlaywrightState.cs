@@ -31,17 +31,20 @@ public class PlaywrightState
         return tokens;
     }
     
-    public void ParseString(string input)
+    public Node ParseString(string input)
     {
         parser = new Parser(LoadString(input));
         Node tree = parser.ParseExpression();
-        Parser.Log(tree.Evaluate().ToString());
+        string result = tree.ToString();
+        Parser.Log(result);
+        return tree;
     }
 
-    public void ParseFile(string filepath)
+    public Node ParseFile(string filepath)
     {
         parser = new Parser(LoadFile(filepath));
         Node tree = parser.ParseExpression();
         Parser.Log(tree.Evaluate().ToString());
+        return tree;
     }
 }

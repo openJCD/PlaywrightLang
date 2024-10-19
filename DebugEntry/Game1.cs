@@ -25,9 +25,9 @@ internal class Game1 : Game
     {
         state = new PlaywrightState();
         state.ParseFile("script.pw");
-        //state.ParseString("2 * ( 100 * 2 ) #should eval to 400 \n");
-        //state.ParseString("3 * ( 100 * 2 ) #should eval to 600");
-        //state.ParseString("5 + (-200 - 3) * 2 #should eval to -401");
+        Parser.Log(state.ParseString("1 + 2 * 3 #should eval to 7 \n").Evaluate().ToString());
+        Parser.Log(state.ParseString("3 * ( 100 * 2 ) #should eval to 600").Evaluate().ToString());
+        Parser.Log(state.ParseString("5 + ( -200 - 3 ) * 2 #should eval to -401").Evaluate().ToString());
         base.Initialize();
     }
 
