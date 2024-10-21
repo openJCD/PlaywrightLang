@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 
 namespace PlaywrightLang.LanguageServices;
@@ -50,6 +51,16 @@ public class PlaywrightState
     public void ParseFile(string filepath)
     {
         parser = new Parser(LoadFile(filepath), this);
+        Stopwatch timer = Stopwatch.StartNew();
         parser.ParseChunk();
+        Parser.Log($"Done in {timer.ElapsedMilliseconds}ms");
+    }
+
+    internal void SetVariable(string name, PwObject value)
+    {
+        if (!Globals.ContainsKey(name))
+            Globals.Add(name, value);
+        else
+            Globals[name] = value;
     }
 }

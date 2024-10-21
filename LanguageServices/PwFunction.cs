@@ -10,7 +10,7 @@ public class PwFunction : PwObject
         ArgumentTypes = args;
         Data = Name + instructions;
         Instructions = instructions;
-        Type = PwObjectType.Sequence;
+        ObjType = PwObjectType.Sequence;
     }
 
     public Node Call(params object[] args)

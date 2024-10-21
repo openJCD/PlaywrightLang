@@ -2,9 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
-
 namespace PlaywrightLang.LanguageServices;
 
 public class Parser
@@ -13,15 +10,15 @@ public class Parser
     private int _tokenIndex = 0;
     private int _currentLine=1;
     private PlaywrightState _state;
-    private Token _currentToken => Peek(0);
-    private Token _lookahead => Peek(1);
-    internal Dictionary<string, PwObject> Globals = new Dictionary<string, PwObject>();
+    private Token CurrentToken => Peek(0);
+    private Token Lookahead => Peek(1);
+    internal Dictionary<string, PwObject> Globals = new();
     
-    internal Dictionary<string, PwActor> Cast = new Dictionary<string, PwActor>();
+    internal readonly Dictionary<string, PwActor> Cast = new();
     
-    internal Dictionary<string, Type> ValidActorTypes = new Dictionary<string, Type>();
+    internal Dictionary<string, Type> ValidActorTypes = new();
     
-    internal Stack<PwObject> LocalStack { get; private set; } = new Stack<PwObject>();
+    internal Stack<PwObject> LocalStack { get; private set; } = new();
     
     public Parser(List<Token> tokens, PlaywrightState state)
     {
@@ -39,14 +36,14 @@ public class Parser
 
     public void ParseBlock()
     {
-        if (_currentToken.Type == TokenType.Newline)
+        if (CurrentToken.Type == TokenType.Newline)
         {
             Consume();
             _currentLine++;
         }
-        while (_currentToken.Type is (TokenType.SceneBlock or TokenType.GlossaryBlock or TokenType.CastBlock))
+        while (CurrentToken.Type is (TokenType.SceneBlock or TokenType.GlossaryBlock or TokenType.CastBlock))
         {
-            switch (_currentToken.Type)
+            switch (CurrentToken.Type)
             {
                 case TokenType.SceneBlock:
                     ParseSceneBlock();
@@ -68,7 +65,7 @@ public class Parser
         Match(TokenType.Colon);
         Match(TokenType.Newline);
         _currentLine++;
-        while (_currentToken.Type is not TokenType.EndBlock)
+        while (CurrentToken.Type is not TokenType.EndBlock)
         {
             ParseLine();
             Match(TokenType.Newline);
@@ -77,35 +74,31 @@ public class Parser
         // not really sure what to do here...
     }
 
-    public void ParseGlossaryBlock()
+    public Node ParseGlossaryBlock()
     {
         Match(TokenType.GlossaryBlock);
         Match(TokenType.Colon);
         Match(TokenType.Newline);
+        List<Node> children = new List<Node>();
         while (true)
         {
-            if (_currentToken.Type is TokenType.EndBlock) return;
-            ParseGlobalAssignment();
+            if (CurrentToken.Type is TokenType.EndBlock) return null;
+            Node line = ParseGlobalAssignment();
+            if (line is not null) children.Add(line);
             Match(TokenType.Newline);
             _currentLine++;
         }
+
+        return new Block(children.ToArray());
     }
     
-    private void ParseGlobalAssignment()
+    private Node ParseGlobalAssignment()
     {
-        if (_currentToken.Type == TokenType.Newline) return;
-        string name = Match(TokenType.Name).Value;
+        if (CurrentToken.Type == TokenType.Newline) return null;
+        Node name = new StringLit(Match(TokenType.Name).Value);
         Match(TokenType.Assignment);
-        object value = ParseExpression().Evaluate();
-        if (value.GetType() == typeof(string))
-        {
-            Globals.Add(name, new PwObject(name, PwObjectType.StringVariable, value.ToString()));
-        }
-        else if (value.GetType() == typeof(int))
-        {
-            Globals.Add(name, new PwObject(name, PwObjectType.IntVariable, value));
-        }
-        Log($"Assigned value '{value}' to global '{name}'");
+        Node right = ParseExpression();
+        return new GlobalAssigmnent(name, right, _state);
     }
     
     private void ParseCastBlock()
@@ -113,9 +106,9 @@ public class Parser
         Match(TokenType.CastBlock);
         Match(TokenType.Colon);
         Match(TokenType.Newline);
-        while (_currentToken.Type is not TokenType.EndBlock or TokenType.Null)
+        while (CurrentToken.Type is not TokenType.EndBlock or TokenType.Null)
         {
-            if (_currentToken.Type != (TokenType.Newline | TokenType.EndBlock))
+            if (CurrentToken.Type != (TokenType.Newline | TokenType.EndBlock))
                 ParseActorAssignment();
             _currentLine++;
         }
@@ -140,7 +133,7 @@ public class Parser
     public void ParseLine()
     {
         _currentLine++;
-        while (_currentToken.Type is not TokenType.Newline)
+        while (CurrentToken.Type is not TokenType.Newline)
         {
             Token id = Match(TokenType.Name);
             if (id.Value == "director")
@@ -163,15 +156,10 @@ public class Parser
         ThrowError("Functions have not yet been implemented.");
         return null;
     }
-
-    public void DoSequence(string self, params string[] others)
-    {
-        ThrowError("Sequence has not yet been implemented.");
-    }
     public Node ParseExpression()
     {
         Node l_val = ParseTerm();
-        while (_currentToken.Type is TokenType.Plus or TokenType.Minus)
+        while (CurrentToken.Type is TokenType.Plus or TokenType.Minus)
         {
             Token op = Consume();
             switch (op.Type)
@@ -194,7 +182,7 @@ public class Parser
     public Node ParseTerm()
     {
         Node l_val = ParseFactor();
-        while (_currentToken.Type == TokenType.Multiply || _currentToken.Type == TokenType.Divide)
+        while (CurrentToken.Type == TokenType.Multiply || CurrentToken.Type == TokenType.Divide)
         {
             Token op = Consume();
             switch (op.Type)
@@ -290,11 +278,6 @@ public class Parser
     public bool TypeExists(string type)
     {
         return ValidActorTypes.ContainsKey(type);
-    }
-    public T GetVariable<T>(string name)
-    {
-        Globals.TryGetValue(name, out PwObject value);
-        return value.Get<T>();
     }
     internal void ThrowError(string err)
     {

@@ -11,7 +11,7 @@ public abstract class Node
 
 public class Chunk : Node
 {
-    List<Node> _nodes = new List<Node>();
+    List<Node> _nodes = new();
     public Chunk(params Node[] nodes)
     {
         foreach (Node nd in nodes)
@@ -26,15 +26,51 @@ public class Chunk : Node
         {
             _nd.Evaluate(); 
         }
-        return 1;
+
+        return ToString();
     }
 
     public override string ToString()
     {
-        return Convert.ToString(_nodes);
+        string result = "{";
+        foreach (Node _nd in _nodes)
+        {
+            result += $"\n|-> {_nd}";
+        }
+
+        return $"{result}}}";
     }
 }
-public class Block : Chunk {}
+
+public class Block : Chunk
+{
+    public Block(params Node[] nodes) : base(nodes) { }
+    public override string ToString() => $"block: {base.ToString()}";
+}
+
+public class GlobalAssigmnent(Node variableName, Node assignedValue, PlaywrightState state)
+    : Node
+{
+    private Node VariableName { get; set; } = variableName;
+    private Node AssignedValue { get; set; } = assignedValue;
+
+    private PlaywrightState _state = state;
+
+    public override object Evaluate()
+    {
+        object right = AssignedValue.Evaluate();
+        string left = VariableName.Evaluate().ToString();
+        PwObject variable = new PwObject(left, right);
+        return variable;
+    }
+
+    public override string ToString()
+    {
+        return $"({VariableName} = {AssignedValue})";
+    }
+}
+
+#region math
 public class Add : Node
 {
     // replace this with expression node
@@ -148,6 +184,9 @@ public class Divide(Node left, Node right) : Node
         return $"({Left} / {Right})";
     }
 }
+#endregion
+
+#region primmitives
 public class Name(string identifier, Parser parseState) : Node
 {
     public readonly string Identifier = identifier;
@@ -163,7 +202,7 @@ public class Name(string identifier, Parser parseState) : Node
             _parseState.ThrowError($"Variable, function or sequence {identifier} not exist in current context.");
             return null;
         }
-        return _parseState.Globals[Identifier].Data;
+        return _parseState.Globals[Identifier].Get();
     }
     public override string ToString() => Identifier;
 }
@@ -190,3 +229,4 @@ public class StringLit(string value) : Node
 
     public override string ToString() => $"\"{Value}\"";
 }
+#endregion
