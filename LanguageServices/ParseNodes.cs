@@ -1,12 +1,27 @@
 using System;
-using System.CodeDom.Compiler;
 using System.Collections.Generic;
+using System.Text;
+
 namespace PlaywrightLang.LanguageServices;
 
 public abstract class Node
 {
     public abstract object Evaluate();
     public abstract override string ToString();
+
+    public int Layer { get; set; } = 0;
+
+    public string BuildIndentedString()
+    {
+        var sb = new StringBuilder();
+        sb.Append('|');
+        for (int i = 0; i < Layer; i++)
+        {
+            sb.Append('-');
+        }
+        sb.Append('>').AppendLine(ToString());
+        return sb.ToString();
+    }
 }
 
 public class Chunk : Node
@@ -25,27 +40,28 @@ public class Chunk : Node
         foreach (Node _nd in _nodes)
         {
             _nd.Evaluate(); 
+            _nd.Layer = Layer + 1;
         }
 
+        Parser.Log(ToString());
         return ToString();
     }
 
     public override string ToString()
     {
-        string result = "{";
-        foreach (Node _nd in _nodes)
+        StringBuilder sb = new StringBuilder();
+        foreach (Node nd in _nodes)
         {
-            result += $"\n|-> {_nd}";
+            sb.AppendLine(nd.ToString());
         }
-
-        return $"{result}}}";
+        return sb.Append("end").ToString(); 
     }
 }
 
 public class Block : Chunk
 {
     public Block(params Node[] nodes) : base(nodes) { }
-    public override string ToString() => $"block: {base.ToString()}";
+    public override string ToString() => $"block: \n{base.ToString()}";
 }
 
 public class GlobalAssigmnent(Node variableName, Node assignedValue, PlaywrightState state)
@@ -67,6 +83,75 @@ public class GlobalAssigmnent(Node variableName, Node assignedValue, PlaywrightS
     public override string ToString()
     {
         return $"({VariableName} = {AssignedValue})";
+    }
+}
+
+public class ActorAssignment(string name, string type, PlaywrightState state) : Node
+{
+    public string ActorName = name;
+    public string ActorType = type;
+    private PlaywrightState _state = state;
+    public override object Evaluate()
+    {
+        _state.SetActor(ActorName, ActorType);
+        return ActorName;
+    }
+
+    public override string ToString()
+    {
+        return $"Instantiated {ActorName} with type {ActorType}";
+    }
+}
+
+public class Line(int num, string actorName, Node[] _functionCalls) : Node 
+{
+    public string ActorName = actorName;
+    public Node[] FunctionCalls = _functionCalls;
+    private int number = num;
+    public override object Evaluate()
+    {
+        foreach (Node nd in FunctionCalls)
+        {
+            nd.Evaluate();
+            nd.Layer = Layer + 1;
+        }
+
+        return ToString();
+    }
+
+    public override string ToString()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine($"Line {number} {ActorName}: ");
+        foreach (Node nd in FunctionCalls)
+            sb.Append(nd.BuildIndentedString());
+        return sb.ToString();
+    }
+}
+
+public class FunctionCall(string id, string caller, Node[] args, PlaywrightState state) : Node
+{
+    Node[] Arguments = args;
+    private string name = id;
+    private string caller = caller;
+    public override object Evaluate()
+    {
+        object[] argsEvaluated = new object[Arguments.Length];
+        int i = 0;
+        foreach (Node nd in Arguments)
+        {
+            argsEvaluated[i] = nd.Evaluate();
+            i++;
+            nd.Layer = Layer + 1;
+        }
+        PwActor callerActor = state.GetActor(caller);
+        PwFunction fn = state.GetFunction(name);
+        return state.RunMethod(callerActor, fn, argsEvaluated);
+    }
+
+    public override string ToString()
+    {
+        return "function call: " + id;
     }
 }
 
@@ -187,22 +272,18 @@ public class Divide(Node left, Node right) : Node
 #endregion
 
 #region primmitives
-public class Name(string identifier, Parser parseState) : Node
+
+public class Name(string identifier, PlaywrightState state ) : Node
 {
     public readonly string Identifier = identifier;
-    private readonly Parser _parseState = parseState;
 
     // change this to access some kind of stack!
     public override object Evaluate()
     {
         Parser.Log($"Found Name: {Identifier}");
-        
-        if (!_parseState.VariableExists(Identifier))
-        {
-            _parseState.ThrowError($"Variable, function or sequence {identifier} not exist in current context.");
-            return null;
-        }
-        return _parseState.Globals[Identifier].Get();
+
+        // change this later on: develop a scope system.
+        return state.GetVariable(Identifier);
     }
     public override string ToString() => Identifier;
 }

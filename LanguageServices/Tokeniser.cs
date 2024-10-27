@@ -101,9 +101,6 @@ public class Tokeniser
                     case "fin":
                         tokens.Add(new Token(TokenType.Exit));
                         break;
-                    case "actor":
-                        tokens.Add(new Token(TokenType.Actor));
-                        break;
                     // like a routine for the user to execute
                     case "scene":
                         tokens.Add(new Token(TokenType.SceneBlock));
@@ -184,7 +181,6 @@ public enum TokenType
     GlossaryBlock, // glossary 
     CastBlock, // cast
     SequenceBlock, // sequence (equivalent to function)
-    Actor, // actor
     Colon, // :
     Assignment, // means
     LParen, // (

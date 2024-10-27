@@ -47,7 +47,7 @@ public enum PwObjectType
     StringVariable,
     IntVariable,
     DoubleVariable,
-    Sequence,
+    Function,
     UserObject,
     Null
 }

@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+
 namespace PlaywrightLang.LanguageServices;
 
 public class Parser
@@ -12,29 +14,25 @@ public class Parser
     private PlaywrightState _state;
     private Token CurrentToken => Peek(0);
     private Token Lookahead => Peek(1);
-    internal Dictionary<string, PwObject> Globals = new();
-    
-    internal readonly Dictionary<string, PwActor> Cast = new();
-    
-    internal Dictionary<string, Type> ValidActorTypes = new();
-    
-    internal Stack<PwObject> LocalStack { get; private set; } = new();
-    
     public Parser(List<Token> tokens, PlaywrightState state)
     {
         _tokens = tokens;
         _state = state;
     }
 
-    public void ParseChunk()
+    public Node ParseChunk()
     {
+        List<Node> nodes = new();
         while (Peek().Type != TokenType.Null)
         {
-            ParseBlock();
+            nodes.Add(ParseBlock());
+            Match(TokenType.Newline);
         }
+
+        return new Chunk(nodes.ToArray());
     }
 
-    public void ParseBlock()
+    public Node ParseBlock()
     {
         if (CurrentToken.Type == TokenType.Newline)
         {
@@ -46,32 +44,32 @@ public class Parser
             switch (CurrentToken.Type)
             {
                 case TokenType.SceneBlock:
-                    ParseSceneBlock();
-                    break;
+                    return ParseSceneBlock();
                 case TokenType.GlossaryBlock:
-                    ParseGlossaryBlock();
-                    break;
+                    return ParseGlossaryBlock();
                 case TokenType.CastBlock:
-                    ParseCastBlock();
-                    break;
+                    return ParseCastBlock();
             }
             Consume();
         }
+        return null;
     }
 
-    public void ParseSceneBlock()
+    public Node ParseSceneBlock()
     {
         Token name = Match(TokenType.Name);
         Match(TokenType.Colon);
         Match(TokenType.Newline);
+        List<Node> children = new();
         _currentLine++;
         while (CurrentToken.Type is not TokenType.EndBlock)
         {
-            ParseLine();
+            Node line = ParseLine(name.Value);
+            if (line != null) children.Add(line);
             Match(TokenType.Newline);
         }
         _currentLine++;
-        // not really sure what to do here...
+        return new Block(children.ToArray());
     }
 
     public Node ParseGlossaryBlock()
@@ -82,16 +80,13 @@ public class Parser
         List<Node> children = new List<Node>();
         while (true)
         {
-            if (CurrentToken.Type is TokenType.EndBlock) return null;
+            if (CurrentToken.Type is TokenType.EndBlock) return new Block(children.ToArray());
             Node line = ParseGlobalAssignment();
             if (line is not null) children.Add(line);
             Match(TokenType.Newline);
             _currentLine++;
         }
-
-        return new Block(children.ToArray());
     }
-    
     private Node ParseGlobalAssignment()
     {
         if (CurrentToken.Type == TokenType.Newline) return null;
@@ -101,54 +96,46 @@ public class Parser
         return new GlobalAssigmnent(name, right, _state);
     }
     
-    private void ParseCastBlock()
+    private Node ParseCastBlock()
     {
         Match(TokenType.CastBlock);
         Match(TokenType.Colon);
         Match(TokenType.Newline);
+        List<Node> assignments = new();
         while (CurrentToken.Type is not TokenType.EndBlock or TokenType.Null)
         {
             if (CurrentToken.Type != (TokenType.Newline | TokenType.EndBlock))
-                ParseActorAssignment();
+            {
+                Node asn = ParseActorAssignment();
+                assignments.Add(asn);
+                Match(TokenType.Newline);
+            }
             _currentLine++;
         }
-        // not really sure what to do here...
+
+        return new Block(assignments.ToArray());
     }
 
 
-    public void ParseActorAssignment()
+    public Node ParseActorAssignment()
     {
         string name = Match(TokenType.Name).Value;
         Match(TokenType.As);
         string type = Match(TokenType.Name).Value;
-    
-        if (type == "actor")
-            Cast.Add(name, new PwActor(name));
-        else if (TypeExists(type))
-        {
-            Cast.Add(name, new PwActor(type));
-        } 
+        return new ActorAssignment(name, type, _state);
     }
     
-    public void ParseLine()
+    public Node ParseLine(string caller)
     {
         _currentLine++;
+        List<Node> funccalls = new();
         while (CurrentToken.Type is not TokenType.Newline)
         {
-            Token id = Match(TokenType.Name);
-            if (id.Value == "director")
-            {
-                // do director things 
-                Match(TokenType.Colon);
-                Log("Made director all");
-            }
-            else if (VariableExists(id.Value))
-            {
-                Match(TokenType.Colon);
-                // change this later: functions called by actors will call those actors' own corresponding functions.
-                ParseFunction();
-            }
+            funccalls.Add(ParseFunction());
+            Match(TokenType.Dot);
         }
+
+        return new Line(_currentLine, caller, funccalls.ToArray());
     }
     
     public Node ParseFunction()
@@ -207,7 +194,7 @@ public class Parser
             case TokenType.Minus:
                 return new Negative(ParseFactor());
             case TokenType.Name: 
-                return new Name(t_current.Value, this);
+                return new Name(t_current.Value, _state);
             case TokenType.IntLiteral:
                 return new Integer(int.Parse(t_current.Value));
             case TokenType.LParen:
@@ -258,26 +245,6 @@ public class Parser
             return Token.None;
         }
         return tk;
-    }
-    
-    /// <summary>
-    /// check if the 
-    /// </summary>
-    /// <param name="variableName"></param>
-    /// <returns></returns>
-    public bool VariableExists(string variableName)
-    {
-        return Globals.ContainsKey(variableName);
-    }
-
-    public bool ActorExists(string actorName)
-    {
-        return Cast.ContainsKey(actorName);
-    }
-
-    public bool TypeExists(string type)
-    {
-        return ValidActorTypes.ContainsKey(type);
     }
     internal void ThrowError(string err)
     {

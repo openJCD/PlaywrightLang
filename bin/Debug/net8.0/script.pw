@@ -2,13 +2,8 @@
     calculation_1 means 2 * -2 + 7 - (10 / 2) 
     calculation_2 means (5 * 5 * 5) / (-10 / -2) 
     info_1 means "This is the Playwright Pre-Alpha. "
-    calculation_3 means 2 * -2 + 7 - (10 / 2) 
-    calculation_4 means (5 * 5 * 5) / (-10 / -2) 
-    info_2 means "This is the Playwright Pre-Alpha. "
-    calculation_5 means 2 * -2 + 7 - (10 / 2) 
-    calculation_6 means (5 * 5 * 5) / (-10 / -2) 
-    info_3 means "This is the Playwright Pre-Alpha. "
-    calculation_7 means 2 * -2 + 7 - (10 / 2) 
-    calculation_8 means (5 * 5 * 5) / (-10 / -2) 
-    info_4 means "This is the Playwright Pre-Alpha. "
+end
+cast:
+    ronnie as actor
+    sheep as prop
 end

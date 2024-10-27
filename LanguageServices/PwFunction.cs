@@ -3,14 +3,16 @@ namespace PlaywrightLang.LanguageServices;
 public class PwFunction : PwObject
 {
     private Node Instructions;
+    private PwActor caller;
     public readonly PwObjectType[] ArgumentTypes;
-    public PwFunction(string id, Node instructions, params PwObjectType[] args) : base()
+    
+    public PwFunction(string id, Node instructions, PwActor actor, params PwObjectType[] argTypes) : base()
     {
         Name = id;
-        ArgumentTypes = args;
-        Data = Name + instructions;
+        ArgumentTypes = argTypes;
+        Data = $"{Name}: {instructions}";
         Instructions = instructions;
-        ObjType = PwObjectType.Sequence;
+        ObjType = PwObjectType.Function;
     }
 
     public Node Call(params object[] args)

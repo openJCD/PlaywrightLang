@@ -3,3 +3,6 @@
     calculation_2 means (5 * 5 * 5) / (-10 / -2) 
     info_1 means "This is the Playwright Pre-Alpha. "
 end
+cast:
+    ronnie as actor
+end
