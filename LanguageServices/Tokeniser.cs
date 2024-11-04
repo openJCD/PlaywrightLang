@@ -13,7 +13,8 @@ public class Tokeniser
     private string _filepath;
     private readonly char[] _codeChars;
     private string _codeRaw;
-    private string _currentLine;
+    private int _currentLine = 1;
+    private int _currentColumn = 1;
     private int _readerIndex;
     
     public Tokeniser(string data)
@@ -32,31 +33,33 @@ public class Tokeniser
             switch (ch_consumed)
             {
                 case '\n' :
-                    tokens.Add(new Token(TokenType.Newline));
+                    tokens.Add(new Token(TokenType.Newline, _currentLine, _currentColumn));
+                    _currentLine++;
+                    _currentColumn = 1;
                     break;
                 case '+':
-                    tokens.Add(new Token(TokenType.Plus));
+                    tokens.Add(new Token(TokenType.Plus, _currentLine, _currentColumn));
                     break;
                 case '-':
-                    tokens.Add(new Token(TokenType.Minus));
+                    tokens.Add(new Token(TokenType.Minus, _currentLine, _currentColumn));
                     break;
                 case '*':
-                    tokens.Add(new Token(TokenType.Multiply));
+                    tokens.Add(new Token(TokenType.Multiply, _currentLine, _currentColumn));
                     break;
                 case '/':
-                    tokens.Add(new Token(TokenType.Divide));
+                    tokens.Add(new Token(TokenType.Divide, _currentLine, _currentColumn));
                     break;
                 case ':':
-                    tokens.Add(new Token(TokenType.Colon));
+                    tokens.Add(new Token(TokenType.Colon, _currentLine, _currentColumn));
                     break;
                 case '(':
-                    tokens.Add(new Token(TokenType.LParen));
+                    tokens.Add(new Token(TokenType.LParen, _currentLine, _currentColumn));
                     break;
                 case ')':
-                    tokens.Add(new Token(TokenType.RParen));
+                    tokens.Add(new Token(TokenType.RParen, _currentLine, _currentColumn));
                     break;
                 case '.':
-                    tokens.Add(new Token(TokenType.Dot));
+                    tokens.Add(new Token(TokenType.Dot, _currentLine, _currentColumn));
                     break;
                 case '#':
                     while (Peek() != '\n' && Peek() != '\0')
@@ -82,7 +85,7 @@ public class Tokeniser
                 }
 
                 Consume();
-                tokens.Add(new Token(TokenType.StringLiteral, _bufCurrent));
+                tokens.Add(new Token(TokenType.StringLiteral, _currentLine, _currentColumn, _bufCurrent));
                 _bufCurrent = "";
             }
             
@@ -99,33 +102,32 @@ public class Tokeniser
                 switch (_bufCurrent)
                 {
                     case "fin":
-                        tokens.Add(new Token(TokenType.Exit));
+                        tokens.Add(new Token(TokenType.Exit, _currentLine, _currentColumn));
                         break;
-                    // like a routine for the user to execute
                     case "scene":
-                        tokens.Add(new Token(TokenType.SceneBlock));
+                        tokens.Add(new Token(TokenType.SceneBlock, _currentLine, _currentColumn));
                         break;
                     // equivalent to '=' in other languages
                     case "means": 
-                        tokens.Add(new Token(TokenType.Assignment));
+                        tokens.Add(new Token(TokenType.Assignment, _currentLine, _currentColumn));
                         break;
                     case "glossary":
-                        tokens.Add(new Token(TokenType.GlossaryBlock));
+                        tokens.Add(new Token(TokenType.GlossaryBlock, _currentLine, _currentColumn));
                         break;
                     case "cast":
-                        tokens.Add(new Token(TokenType.CastBlock));
+                        tokens.Add(new Token(TokenType.CastBlock, _currentLine, _currentColumn));
                         break;
                     case "sequence":
-                        tokens.Add(new Token(TokenType.SequenceBlock));
+                        tokens.Add(new Token(TokenType.SequenceBlock, _currentLine, _currentColumn));
                         break;
                     case "end":
-                        tokens.Add(new Token(TokenType.EndBlock));
+                        tokens.Add(new Token(TokenType.EndBlock, _currentLine, _currentColumn));
                         break;
                     case "as":
-                        tokens.Add(new Token(TokenType.As));
+                        tokens.Add(new Token(TokenType.As, _currentLine, _currentColumn));
                         break;
                     default:
-                        tokens.Add(new Token(TokenType.Name, _bufCurrent));
+                        tokens.Add(new Token(TokenType.Name, _currentLine, _currentColumn, _bufCurrent));
                         break;
                 }
                 _bufCurrent = "";
@@ -141,11 +143,9 @@ public class Tokeniser
                 {
                     _bufCurrent += Consume();
                 }
-                tokens.Add(new Token(TokenType.IntLiteral, _bufCurrent));
+                tokens.Add(new Token(TokenType.IntLiteral, _currentLine, _currentColumn, _bufCurrent));
                 _bufCurrent = "";
-                continue;
             }
-
         }
         return tokens;
     }
@@ -160,6 +160,7 @@ public class Tokeniser
     public char Consume()
     {
         char c = _codeChars.ElementAtOrDefault(_readerIndex++);
+        _currentColumn++;
         return c;
     }
 }
@@ -194,16 +195,19 @@ public struct Token
 {
     public TokenType Type;
     public string? Value;
-    
-    public Token(TokenType type)
+    public readonly int Line;
+    public readonly int Column;
+
+    public Token(TokenType type, int line, int column)
     {
         Type = type;
     }
-    public Token(TokenType type, string? value)
+
+    public Token(TokenType type, int line, int column, string? value) : this(type, line, column)
     {
         Type = type;
         Value = value;
     }
     public override string ToString() => $"{Type}: {Value}";
-    public static Token None => new Token(TokenType.Null);
+    public static Token None => new Token(TokenType.Null, 0, 0);
 }

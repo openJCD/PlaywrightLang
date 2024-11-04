@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 
 namespace PlaywrightLang.LanguageServices;
 
@@ -248,7 +247,7 @@ public class Parser
     }
     internal void ThrowError(string err)
     {
-        string msg = ($"At line '{_currentLine}' token '{_tokenIndex}': {err}");
+        string msg = ($"At '{CurrentToken.Line}', '{CurrentToken.Column}',  token '{_tokenIndex}': {err}");
         Log(msg, "ERROR");
     }
 
