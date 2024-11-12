@@ -1,7 +1,9 @@
 ﻿#nullable enable
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Security;
 
 namespace PlaywrightLang.LanguageServices;
 
@@ -10,10 +12,10 @@ public class Parser
     private List<Token> _tokens;
     private int _tokenIndex = 0;
     private int _currentLine=1;
-    private PlaywrightState _state;
+    private PwState _state;
     private Token CurrentToken => Peek(0);
     private Token Lookahead => Peek(1);
-    public Parser(List<Token> tokens, PlaywrightState state)
+    public Parser(List<Token> tokens, PwState state)
     {
         _tokens = tokens;
         _state = state;
@@ -33,25 +35,19 @@ public class Parser
 
     public Node ParseBlock()
     {
-        if (CurrentToken.Type == TokenType.Newline)
+        switch (CurrentToken.Type)
         {
-            Consume();
-            _currentLine++;
+            case TokenType.SceneBlock:
+                return ParseSceneBlock();
+            case TokenType.GlossaryBlock:
+                return ParseGlossaryBlock();
+            case TokenType.CastBlock:
+                return ParseCastBlock();
+            case TokenType.Define:
+                return ParseFuncBlock();
         }
-        while (CurrentToken.Type is (TokenType.SceneBlock or TokenType.GlossaryBlock or TokenType.CastBlock))
-        {
-            switch (CurrentToken.Type)
-            {
-                case TokenType.SceneBlock:
-                    return ParseSceneBlock();
-                case TokenType.GlossaryBlock:
-                    return ParseGlossaryBlock();
-                case TokenType.CastBlock:
-                    return ParseCastBlock();
-            }
-            Consume();
-        }
-        return null;
+
+        return new VoidNode();
     }
 
     public Node ParseSceneBlock()
@@ -63,12 +59,12 @@ public class Parser
         _currentLine++;
         while (CurrentToken.Type is not TokenType.EndBlock)
         {
-            Node line = ParseLine(name.Value);
+            Node line = ParseLine();
             if (line != null) children.Add(line);
             Match(TokenType.Newline);
         }
         _currentLine++;
-        return new Block(children.ToArray());
+        return new Block("scene", children.ToArray());
     }
 
     public Node ParseGlossaryBlock()
@@ -79,12 +75,17 @@ public class Parser
         List<Node> children = new List<Node>();
         while (true)
         {
-            if (CurrentToken.Type is TokenType.EndBlock) return new Block(children.ToArray());
+            if (CurrentToken.Type is TokenType.EndBlock)
+            {
+                Match(TokenType.EndBlock);
+                return new Block("glossary", children.ToArray());
+            }
             Node line = ParseGlobalAssignment();
             if (line is not null) children.Add(line);
             Match(TokenType.Newline);
             _currentLine++;
         }
+
     }
     private Node ParseGlobalAssignment()
     {
@@ -112,37 +113,87 @@ public class Parser
             _currentLine++;
         }
 
-        return new Block(assignments.ToArray());
+        Match(TokenType.EndBlock);
+        return new Block("cast", assignments.ToArray());
     }
 
 
-    public Node ParseActorAssignment()
+    private Node ParseActorAssignment()
     {
         string name = Match(TokenType.Name).Value;
         Match(TokenType.As);
         string type = Match(TokenType.Name).Value;
         return new ActorAssignment(name, type, _state);
     }
+
+    private Node ParseFuncBlock()
+    {
+        Match(TokenType.Define);
+        Match(TokenType.Func);
+        string func_id = Match(TokenType.Name).Value;
+        string for_actor = "all"; // if the 'for' is not specified, every actor has access to this function.
+        if (CurrentToken.Type == TokenType.For)
+        {
+            Consume();   
+            for_actor = Match(TokenType.Name).Value;
+        }
+        Match(TokenType.LParen);
+        List<Name> args = new();
+        while (CurrentToken.Type is not (TokenType.RParen or TokenType.Newline))
+        {
+            string argname = Match(TokenType.Name).Value;
+            args.Add(new Name(argname, _state));
+            if (Peek().Type != TokenType.RParen)
+                Match(TokenType.Comma);
+        }
+        Match(TokenType.RParen);
+        Match(TokenType.Colon);
+        List<Node> instructions = new();
+        while (CurrentToken.Type is not (TokenType.EndBlock or TokenType.Null))
+        {
+            Token t = Consume();
+            if (CurrentToken.Type == TokenType.Return)
+            {
+                Match(TokenType.Return);
+                if (Peek().Type != TokenType.With)
+                {
+                    instructions.Add(new ReturnStmt(func_id, new VoidNode()));
+                    continue;
+                }
+                Match(TokenType.With);
+                instructions.Add(new ReturnStmt(func_id, ParseExpression()));
+            } else if (CurrentToken.Type == TokenType.Name)
+            {
+                instructions.Add(ParseLine());
+            }
+            else Match(TokenType.Newline);
+            
+        }
+        return new FunctionBlock(func_id, for_actor, args.ToArray(), instructions.ToArray(), _state);
+    }
     
-    public Node ParseLine(string caller)
+    private Node ParseLine()
     {
         _currentLine++;
+        string caller = Match(TokenType.Name).Value;
+        Match(TokenType.Colon);
         List<Node> funccalls = new();
         while (CurrentToken.Type is not TokenType.Newline)
         {
-            funccalls.Add(ParseFunction());
+            funccalls.Add(ParseFunctionCall(caller));
             Match(TokenType.Dot);
         }
 
         return new Line(_currentLine, caller, funccalls.ToArray());
     }
-    
-    public Node ParseFunction()
+
+    private Node ParseFunctionCall(string parent_actor)
     {
         ThrowError("Functions have not yet been implemented.");
         return null;
     }
-    public Node ParseExpression()
+
+    private Node ParseExpression()
     {
         Node l_val = ParseTerm();
         while (CurrentToken.Type is TokenType.Plus or TokenType.Minus)
@@ -164,8 +215,8 @@ public class Parser
         ThrowError("Could not find a valid expression to parse..?");
         return null;
     }
-    
-    public Node ParseTerm()
+
+    private Node ParseTerm()
     {
         Node l_val = ParseFactor();
         while (CurrentToken.Type == TokenType.Multiply || CurrentToken.Type == TokenType.Divide)
@@ -185,7 +236,7 @@ public class Parser
         return l_val;
     }
 
-    public Node ParseFactor()
+    private Node ParseFactor()
     {
         Token t_current = Consume();
         switch (t_current.Type)
@@ -244,6 +295,16 @@ public class Parser
             return Token.None;
         }
         return tk;
+    }
+
+    bool IsBlock(TokenType t)
+    {
+        if (t is (TokenType.CastBlock or TokenType.GlossaryBlock or TokenType.SceneBlock or TokenType.Define))
+        {
+            return true;
+        }
+
+        return false;
     }
     internal void ThrowError(string err)
     {

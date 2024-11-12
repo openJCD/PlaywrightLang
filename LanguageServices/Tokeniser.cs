@@ -35,7 +35,7 @@ public class Tokeniser
                 case '\n' :
                     tokens.Add(new Token(TokenType.Newline, _currentLine, _currentColumn));
                     _currentLine++;
-                    _currentColumn = 1;
+                    _currentColumn = 0;
                     break;
                 case '+':
                     tokens.Add(new Token(TokenType.Plus, _currentLine, _currentColumn));
@@ -64,6 +64,9 @@ public class Tokeniser
                 case '#':
                     while (Peek() != '\n' && Peek() != '\0')
                     { Consume(); }
+                    break;
+                case ',':
+                    tokens.Add(new Token(TokenType.Comma, _currentLine, _currentColumn));
                     break;
                 default: break;
             }
@@ -99,7 +102,7 @@ public class Tokeniser
                 while (char.IsLetterOrDigit(Peek()) || Peek() == '_')
                     _bufCurrent += Consume();
 
-                switch (_bufCurrent)
+                switch (_bufCurrent.ToLower())
                 {
                     case "fin":
                         tokens.Add(new Token(TokenType.Exit, _currentLine, _currentColumn));
@@ -125,6 +128,24 @@ public class Tokeniser
                         break;
                     case "as":
                         tokens.Add(new Token(TokenType.As, _currentLine, _currentColumn));
+                        break;
+                    case "define":
+                        tokens.Add(new Token(TokenType.Define, _currentLine, _currentColumn));
+                        break;
+                    case "function":
+                        tokens.Add(new Token(TokenType.Func, _currentLine, _currentColumn));
+                        break;
+                    case "for":
+                        tokens.Add(new Token(TokenType.For, _currentLine, _currentColumn));
+                        break;
+                    case "while":
+                        tokens.Add(new Token(TokenType.While, _currentLine, _currentColumn));
+                        break;
+                    case "exeunt":
+                        tokens.Add(new Token(TokenType.Return, _currentLine, _currentColumn));
+                        break;
+                    case "with":
+                        tokens.Add(new Token(TokenType.With, _currentLine, _currentColumn));
                         break;
                     default:
                         tokens.Add(new Token(TokenType.Name, _currentLine, _currentColumn, _bufCurrent));
@@ -188,7 +209,14 @@ public enum TokenType
     RParen, // )
     Dot,// .
     EndBlock, // end
-    As // as -> (used in the cast block to denote a type of actor, for example 'tree as prop')
+    As, // as -> (used in the cast block to denote a type of actor, for example 'tree as prop')
+    Define,
+    Func,
+    For,
+    While,
+    Comma, 
+    Return, // exeunt 
+    With, // used in return statements: "exeunt with <expr>"
 }
 
 public struct Token
@@ -200,12 +228,13 @@ public struct Token
 
     public Token(TokenType type, int line, int column)
     {
+        Line = line;
+        Column = column;
         Type = type;
     }
 
     public Token(TokenType type, int line, int column, string? value) : this(type, line, column)
     {
-        Type = type;
         Value = value;
     }
     public override string ToString() => $"{Type}: {Value}";

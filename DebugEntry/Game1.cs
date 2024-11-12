@@ -13,7 +13,7 @@ internal class Game1 : Game
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
     private Tokeniser tokeniser;
-    private PlaywrightState state;
+    private PwState state;
     public Game1()
     {
         _graphics = new GraphicsDeviceManager(this);
@@ -24,7 +24,7 @@ internal class Game1 : Game
 
     protected override void Initialize()
     {
-        state = new PlaywrightState();
+        state = new PwState();
         state.ParseFile("script.pw");
         base.Initialize();
     }
