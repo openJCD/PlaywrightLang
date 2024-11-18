@@ -78,7 +78,7 @@ public class Tokeniser
                     {
                         Consume();
                         _bufCurrent += Consume();
-                    } 
+                    }
                 }
 
                 Consume();
