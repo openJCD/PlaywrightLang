@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.Xna.Framework.Input.Touch;
+using PlaywrightLang.LanguageServices;
 
 namespace PlaywrightLang;
 
@@ -11,39 +11,46 @@ namespace PlaywrightLang;
 /// Contains basic built-in methods - (for Playwright developer) Please try to keep members to a minimum for
 /// ease of use. 
 /// </summary>
-public class PwActor
+public class PwActor : PwObject
 {
-    private List<string> ValidFuncs = new();
-    
-    [PwRegister("name")]
-    public string Name { get; set; }
-    
-    [PwRegister("x")]
+    private Dictionary<string, PwFunction> CachedPwMethods     = new();
+    private Dictionary<string, MethodInfo> CachedCsharpMethods = new();
+    private PwState _state;
+    [PwItem("x")]
     public int XPos { get; set; }
     
-    [PwRegister("y")]
+    [PwItem("y")]
     public int YPos { get; set; }
 
-    public PwActor(string name)
+    public PwActor(string name, PwState s)
     {
+        _state = s;
         Name = name;
     }
     
-    [PwRegister("says")]
+    [PwItem("says")]
     public virtual void Say(string dialogue) {}
     public virtual void Ready() {}
-    
-    
     public virtual void Destroy() {}
-}
 
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Method, AllowMultiple = true)]
-public class PwRegisterAttribute : Attribute
-{
-    public string PwName { get; private set; }
-
-    public PwRegisterAttribute(string name)
+    public void CacheMethod(string name, PwFunction function)
     {
-        PwName = name;
+        CachedPwMethods[name] = function;
+    }
+    public void CacheMethod(string name, MethodInfo method)
+    {
+        CachedCsharpMethods[name] = method;
+    }
+    internal object InvokeMethod(string method, params object[] args)
+    {
+        if (CachedPwMethods.ContainsKey(method)) 
+        {
+            return _state.InvokeFunction(CachedPwMethods[method]);
+        }
+        else if (CachedCsharpMethods.ContainsKey(method))
+        {
+            return CachedCsharpMethods[method].Invoke(this, args);
+        }
+        else throw new PwException($"Method {method} not found");   
     }
 }

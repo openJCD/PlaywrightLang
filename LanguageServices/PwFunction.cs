@@ -2,21 +2,27 @@ namespace PlaywrightLang.LanguageServices;
 
 public class PwFunction : PwObject
 {
-    private Node Instructions;
-    private PwActor caller;
-    public readonly PwObjectType[] ArgumentTypes;
-    
-    public PwFunction(string id, Node instructions, PwActor actor, params PwObjectType[] argTypes) : base()
+    public readonly Node[] Instructions;
+    private string caller;
+    public PwFunction(string id, Node[] instructions, string actor) : base()
     {
         Name = id;
-        ArgumentTypes = argTypes;
+        caller = actor;
         Data = $"{Name}: {instructions}";
         Instructions = instructions;
-        ObjType = PwObjectType.Function;
     }
 
-    public Node Call(params object[] args)
+    public object Invoke(ScopedSymbolTable scope, params object[] args)
     {
-        return Instructions;
+        foreach (Node n in Instructions)
+        {
+            if (n is ReturnStmt)
+            {
+                return n.Evaluate();
+            }
+            n.Evaluate();
+        }
+
+        return null;
     }
 }

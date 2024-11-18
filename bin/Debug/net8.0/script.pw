@@ -1,7 +1,14 @@
 ﻿glossary:
-    intro means "Welcome to Playwright!"
-    calculation_1 means ( 2 * 2 ) - 5 + (-60)
+    calculation_1 means 2 * -2 + 7 - (10 / 2) 
+    calculation_2 means (5 * 5 * 5) / (-10 / -2) 
+    info_1 means "This is the Playwright Pre-Pre-Pre-Alpha. "
 end
 cast:
     ronnie as actor
+end
+Define function hello_world for actor ():
+
+end
+Define function good_morning(arg, arg1): 
+
 end

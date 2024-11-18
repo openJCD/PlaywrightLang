@@ -2,10 +2,8 @@ namespace PlaywrightLang.LanguageServices;
 
 public class Interpreter(Node rootnode)
 {
-    readonly Node _root = rootnode;
-
-    public void Execute()
+    public string Execute()
     {
-        _root.Evaluate();
+        return rootnode.Evaluate().ToString();
     }
 }
