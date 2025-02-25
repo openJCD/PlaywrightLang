@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 
 namespace PlaywrightLang.LanguageServices;
 
 public abstract class Node
 {
-    // TODO: change signature so a scope can be passed to each node.
-    public abstract object Evaluate();
+    public abstract PwObject Evaluate(ScopedSymbolTable scope);
+    
     public abstract override string ToString();
 
     public int Layer { get; set; } = 0;
@@ -33,7 +34,7 @@ public abstract class Node
 
 public class VoidNode : Node
 {
-    public override object Evaluate() { return "void"; }
+    public override PwObject Evaluate(ScopedSymbolTable scope) { return null; }
     public override string ToString()
     {
         return "void";
@@ -50,27 +51,27 @@ public class Chunk : Node
         }
     }
 
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
         foreach (Node _nd in _nodes)
         {
             _nd.Layer = Layer + 1;
-            _nd.Evaluate(); 
+            _nd.Evaluate(scope); 
         }
 
         Parser.Log("parsed chunk successfully");
-        return ToString();
+        return null;
     }
 
     public override string ToString()
     {
         StringBuilder sb = new StringBuilder();
-        sb.Append(BuildIndentedString("\nbegin chunk:"));
+        sb.Append("\nbegin chunk:");
         foreach (Node nd in _nodes)
         {
             sb.Append(nd.BuildIndentedString());
         }
-        return sb.Append(BuildIndentedString("end chunk")).ToString(); 
+        return BuildIndentedString(sb.AppendLine("end chunk").ToString()); 
     }
 }
 
@@ -87,14 +88,14 @@ public class Block : Node
         }
     }
 
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
         foreach (Node _nd in _nodes)
         {
-            _nd.Evaluate(); 
+            _nd.Evaluate(scope); 
         }
 
-        return ToString();
+        return null;
     }
 
     public override string ToString()
@@ -118,11 +119,12 @@ public class GlobalAssigmnent(Node variableName, Node assignedValue, PwState sta
 
     private PwState _state = state;
 
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
-        object right = AssignedValue.Evaluate();
-        string left = VariableName.Evaluate().ToString();
-        PwObject variable = new PwObject(left, right);
+        object right = AssignedValue.Evaluate(scope);
+        string left = VariableName.Evaluate(scope).ToString();
+        
+        var variable = new PwPrimitive(left, right, scope);
         return variable;
     }
 
@@ -137,10 +139,10 @@ public class ActorAssignment(string name, string type, PwState state) : Node
     public string ActorName = name;
     public string ActorType = type;
     private PwState _state = state;
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
         _state.SetActor(ActorName, ActorType);
-        return ActorName;
+        return null;
     }
 
     public override string ToString()
@@ -154,15 +156,15 @@ public class Line(int num, string actorName, Node[] _functionCalls) : Node
     public string ActorName = actorName;
     public Node[] FunctionCalls = _functionCalls;
     private int number = num;
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
         foreach (Node nd in FunctionCalls)
         {
-            nd.Evaluate();
+            nd.Evaluate(scope);
             nd.Layer = Layer + 1;
         }
 
-        return ToString();
+        return null;
     }
 
     public override string ToString()
@@ -175,36 +177,33 @@ public class Line(int num, string actorName, Node[] _functionCalls) : Node
     }
 }
 
-public class FunctionCall(string id, string caller, Name[] args, PwState state) : Node
+public class FunctionCall(string id, ParamExpressions args, PwState state) : Node
 {
-    Node[] Arguments = args;
     private string name = id;
-    private string caller = caller;
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
-        object[] argsEvaluated = new object[Arguments.Length];
-        int i = 0;
-        foreach (Node nd in Arguments)
-        {
-            argsEvaluated[i] = nd.Evaluate();
-            i++;
-            nd.Layer = Layer + 1;
-        }
-        PwActor callerActor = state.GetActor(caller);
-        return callerActor.InvokeMethod(id, argsEvaluated);
+        throw new NotImplementedException();
     }
-
     public override string ToString()
     {
-        return $"function call: {id}";
+        return $"function call {id}: \n{args}";
     }
 }
 
 public class FunctionBlock(string id, string for_actor, Name[] args, Node[] instructions, PwState state) : Node
 {
-    public override object Evaluate()
+    Node[] _instructions = instructions;
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
-        return new PwFunction(id, instructions, for_actor);
+        List<string> argumentNames = new();
+        foreach (var arg in args)
+        {
+            argumentNames.Add(arg.ToString());
+        }
+
+        var myself = new PwFunction(id, argumentNames.ToArray(), instructions, for_actor);
+        state.RegisterPwFunction(myself, for_actor);
+        return myself;
     }
 
     public override string ToString()
@@ -217,30 +216,85 @@ public class FunctionBlock(string id, string for_actor, Name[] args, Node[] inst
         foreach (Node nd in instructions)
         {
             nd.Layer = Layer + 1;
-            sb.AppendLine(nd.BuildIndentedString());
+            sb.Append(nd);
         }
-        return sb.AppendLine(BuildIndentedString("end function")).ToString();
+        return  BuildIndentedString(sb.AppendLine().ToString());
     }
 }
 
-public class ReturnStmt(string parentFunc, Node retValue) : Node
+public class ReturnStmt(string parentFunc, Node retValue) :  Node
 {
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
-        return retValue.Evaluate();
+        return retValue.Evaluate(scope);
     }
 
     public override string ToString()
     {
-        return BuildIndentedString($"return from {parentFunc} with {retValue}");
+        return BuildIndentedString($"\nreturn from {parentFunc} with {retValue}");
     }
 }
 
+public class DotOperator (string identifier) : Node
+{
+    private string Identifier = identifier;
+    public override PwObject Evaluate(ScopedSymbolTable scope)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override string ToString()
+    {
+        string s = $"access: {identifier}";
+        return s;
+    }
+}
+
+public class Postfix(Node[] operators) : Node
+{
+    public override PwObject Evaluate(ScopedSymbolTable scope)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override string ToString()
+    {
+        string s = "postfix: (";
+        foreach (Node op in operators)
+        {
+            s += $"{op},";
+        }
+
+        s += ")";
+        return BuildIndentedString(s);
+    }
+}
+
+public class ParamExpressions(Node[] parameters) : Node
+{
+    private Node[] Parameters = parameters;
+
+    public override PwObject Evaluate(ScopedSymbolTable scope)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override string ToString()
+    {
+        string s = $"params: (";
+        foreach (Node param in Parameters)
+        {
+            s += $"{param}";
+        }
+
+        s += ')';
+        return s;
+    }
+}
 
 #region math
 public class Add : Node
 {
-    // replace this with expression node
     public readonly Node Left;
     
     public readonly Node Right;
@@ -250,18 +304,18 @@ public class Add : Node
         this.Left = left;
         this.Right = right;
     }
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
         try
         {
-            int l_val = int.Parse(Left.Evaluate().ToString());
-            int r_val = int.Parse(Right.Evaluate().ToString());
+            int l_val = (int)((Left.Evaluate(scope) as PwPrimitive).GetData());
+            int r_val = (int)((Right.Evaluate(scope) as PwPrimitive).GetData());
             Parser.Log($"Addition: {ToString()}");
-            return (l_val + r_val);
+            return new PwPrimitive($"eval_{l_val}+{r_val}", l_val + r_val, scope);
         }
         catch (Exception exception)
         {
-            Parser.Log($"Unable to parse expression: {Left} + {Right}: {exception.Message}.");
+            Parser.Log($"Unable to parse expression: {Left} + {Right}: {exception.Message}. (Likely a type mismatch.)");
             return null;
         }
     }
@@ -281,18 +335,18 @@ public class Subtract : Node
         this.Right = right;
     }
     
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
         try
         {
-            int l_val = int.Parse(Left.Evaluate().ToString());
-            int r_val = int.Parse(Right.Evaluate().ToString());
+            int l_val = (int)((Left.Evaluate(scope) as PwPrimitive).GetData());
+            int r_val = (int)((Right.Evaluate(scope) as PwPrimitive).GetData());
             Parser.Log($"Subtraction: {ToString()}");
-            return (l_val - r_val);
+            return new PwPrimitive($"eval_{l_val}-{r_val}", l_val - r_val, scope);
         }
         catch
         {
-            throw new Exception($"Unable to parse expression: {Left.Evaluate().ToString()} - {Right.Evaluate().ToString()}. Expected integer values.");
+            throw new Exception($"Unable to parse expression: {Left.Evaluate(scope).ToString()} - {Right.Evaluate(scope).ToString()}. Expected integer values.");
         }
     }
     public override string ToString()
@@ -309,9 +363,9 @@ public class Negative : Node
         this.Term = term;
     }
 
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
-        return -(int)Term.Evaluate();
+        return new PwPrimitive($"negate_{Term}", -(int)((Term.Evaluate(scope) as PwPrimitive).GetData()), scope);
     }
 
     public override string ToString()
@@ -324,10 +378,12 @@ public class Multiply(Node left, Node right) : Node
     public readonly Node Left = left;
     public readonly Node Right = right;
 
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
+        int l_val = (int)((Left.Evaluate(scope) as PwPrimitive).GetData());
+        int r_val = (int)((Right.Evaluate(scope) as PwPrimitive).GetData());
         Parser.Log($"Multiply: {this}");
-        return (int)Left.Evaluate() * (int)Right.Evaluate();
+        return new PwPrimitive($"eval_{l_val} * {r_val}", l_val * r_val, scope); 
     }
 
     public override string ToString()
@@ -340,10 +396,12 @@ public class Divide(Node left, Node right) : Node
     public readonly Node Left = left;
     public readonly Node Right = right;
 
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
-        Parser.Log($"Division: {this}");
-        return (int)Left.Evaluate() / (int)Right.Evaluate();
+        int l_val = (int)((Left.Evaluate(scope) as PwPrimitive).GetData());
+        int r_val = (int)((Right.Evaluate(scope) as PwPrimitive).GetData());
+        Parser.Log($"Divide: {this}");
+        return new PwPrimitive($"eval_{l_val} / {r_val}", l_val / r_val, scope); 
     }
 
     public override string ToString()
@@ -360,11 +418,11 @@ public class Name(string identifier, PwState state ) : Node
     public readonly string Identifier = identifier;
 
     // change this to access some kind of stack!
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
         Parser.Log($"Found Name: {Identifier}");
 
-        return state.GetVariable(Identifier);
+        return scope.Lookup(Identifier);
     }
     public override string ToString() => Identifier;
 }
@@ -372,9 +430,9 @@ public class Integer(int value) : Node
 {
     public int Value { get; private set; } = value;
 
-    public override object Evaluate()
+    public override PwObject Evaluate(ScopedSymbolTable scope)
     {
-        return Value;
+        return new PwPrimitive("new_int", Value, scope);
     }
 
     public override string ToString()
@@ -386,7 +444,7 @@ public class StringLit(string value) : Node
 {
     public readonly string Value = value;
 
-    public override object Evaluate() => Value;
+    public override PwObject Evaluate(ScopedSymbolTable scope) => new PwPrimitive("new_string", Value, scope);
 
     public override string ToString() => $"\"{Value}\"";
 }

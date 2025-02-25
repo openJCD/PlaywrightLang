@@ -5,7 +5,6 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Security.Principal;
-
 namespace PlaywrightLang.LanguageServices;
 
 public class Tokeniser
@@ -33,8 +32,7 @@ public class Tokeniser
             switch (ch_consumed)
             {
                 case '\n' :
-                    tokens.Add(new Token(TokenType.Newline, _currentLine, _currentColumn));
-                    _currentLine++;
+                     _currentLine++;
                     _currentColumn = 0;
                     break;
                 case '+':
@@ -67,6 +65,9 @@ public class Tokeniser
                     break;
                 case ',':
                     tokens.Add(new Token(TokenType.Comma, _currentLine, _currentColumn));
+                    break;
+                case ';':
+                    tokens.Add(new Token(TokenType.Semicolon, _currentLine, _currentColumn));
                     break;
                 default: break;
             }
@@ -147,6 +148,12 @@ public class Tokeniser
                     case "with":
                         tokens.Add(new Token(TokenType.With, _currentLine, _currentColumn));
                         break;
+                    case "true":
+                        tokens.Add(new Token(TokenType.BoolTrue, _currentLine, _currentColumn));
+                        break;
+                    case "false":
+                        tokens.Add(new Token(TokenType.BoolFalse, _currentLine, _currentColumn));
+                        break;
                     default:
                         tokens.Add(new Token(TokenType.Name, _currentLine, _currentColumn, _bufCurrent));
                         break;
@@ -191,8 +198,7 @@ public enum TokenType
     Null, // used to signify the end of a list of tokens (EOF)
     Exit, // fin
     StringLiteral, // "<string of characters>"
-    IntLiteral, // <any string of numbers with no decimal>
-    Newline, // \n
+    IntLiteral, // \n
     Plus, // +
     Minus, // -
     Multiply,// *
@@ -204,10 +210,11 @@ public enum TokenType
     CastBlock, // cast
     SequenceBlock, // sequence (equivalent to function)
     Colon, // :
+    Semicolon, // ; 
     Assignment, // means
     LParen, // (
     RParen, // )
-    Dot,// .
+    Dot,    // .
     EndBlock, // end
     As, // as -> (used in the cast block to denote a type of actor, for example 'tree as prop')
     Define,
@@ -217,6 +224,8 @@ public enum TokenType
     Comma, 
     Return, // exeunt 
     With, // used in return statements: "exeunt with <expr>"
+    BoolTrue,
+    BoolFalse
 }
 
 public struct Token

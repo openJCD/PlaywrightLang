@@ -2,25 +2,46 @@ namespace PlaywrightLang.LanguageServices;
 
 public class PwFunction : PwObject
 {
+    // TODO: Add mechanism to create PwFunction from a C# Method
     public readonly Node[] Instructions;
-    private string caller;
-    public PwFunction(string id, Node[] instructions, string actor) : base()
+    private string _callerType;
+    private string[] argIdentifiers;
+    public PwFunction(string id, string[] argIds, Node[] instructions, string callerType) : base()
     {
         Name = id;
-        caller = actor;
-        Data = $"{Name}: {instructions}";
+        _callerType = callerType;
         Instructions = instructions;
+        argIdentifiers = argIds;
     }
 
-    public object Invoke(ScopedSymbolTable scope, params object[] args)
+    public PwObject Invoke(PwObject caller, ScopedSymbolTable scope, PwObject[] args)
     {
+        if (args.Length != argIdentifiers.Length)
+        {
+            throw new PwException($"Invalid number of arguments for function invocation {Name}");
+        }
+        else
+        {
+            // for each argument passed in, add it to the current nested scope as an object with
+            // the name of the argument as its ID. 
+            for (int i = 0; i < args.Length; i++)
+            {
+                scope.AddSymbolAlias(argIdentifiers[i], args[i]);
+            }
+
+            if (caller != null)
+            { 
+                // add the symbol 'self' to enable self-mutation and calls on own members, etc.
+                scope.AddSymbolAlias("self", this);
+            }
+        }
         foreach (Node n in Instructions)
         {
             if (n is ReturnStmt)
             {
-                return n.Evaluate();
+                return n.Evaluate(scope);
             }
-            n.Evaluate();
+            n.Evaluate(scope);
         }
 
         return null;

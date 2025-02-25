@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.InteropServices.JavaScript;
 using System.Security;
 
 namespace PlaywrightLang.LanguageServices;
@@ -27,7 +28,6 @@ public class Parser
         while (Peek().Type != TokenType.Null)
         {
             nodes.Add(ParseBlock());
-            Match(TokenType.Newline);
         }
 
         return new Chunk(nodes.ToArray());
@@ -52,147 +52,155 @@ public class Parser
 
     public Node ParseSceneBlock()
     {
-        Token name = Match(TokenType.Name);
-        Match(TokenType.Colon);
-        Match(TokenType.Newline);
+        Expect(TokenType.SceneBlock);
+        Token name = Expect(TokenType.Name);
+        Expect(TokenType.Colon);
         List<Node> children = new();
         _currentLine++;
         while (CurrentToken.Type is not TokenType.EndBlock)
         {
             Node line = ParseLine();
             if (line != null) children.Add(line);
-            Match(TokenType.Newline);
         }
-        _currentLine++;
+
+        Expect(TokenType.EndBlock);
         return new Block("scene", children.ToArray());
     }
 
     public Node ParseGlossaryBlock()
     {
-        Match(TokenType.GlossaryBlock);
-        Match(TokenType.Colon);
-        Match(TokenType.Newline);
+        Expect(TokenType.GlossaryBlock);
+        Expect(TokenType.Colon);
         List<Node> children = new List<Node>();
-        while (true)
+        while (CurrentToken.Type != TokenType.EndBlock)
         {
-            if (CurrentToken.Type is TokenType.EndBlock)
-            {
-                Match(TokenType.EndBlock);
-                return new Block("glossary", children.ToArray());
-            }
             Node line = ParseGlobalAssignment();
             if (line is not null) children.Add(line);
-            Match(TokenType.Newline);
-            _currentLine++;
         }
 
+        Expect(TokenType.EndBlock);
+        return new Block("glossary", children.ToArray());
     }
     private Node ParseGlobalAssignment()
     {
-        if (CurrentToken.Type == TokenType.Newline) return null;
-        Node name = new StringLit(Match(TokenType.Name).Value);
-        Match(TokenType.Assignment);
+        Node name = new StringLit(Expect(TokenType.Name).Value);
+        Expect(TokenType.Assignment);
         Node right = ParseExpression();
+        Expect(TokenType.Semicolon);
         return new GlobalAssigmnent(name, right, _state);
     }
     
     private Node ParseCastBlock()
     {
-        Match(TokenType.CastBlock);
-        Match(TokenType.Colon);
-        Match(TokenType.Newline);
+        Expect(TokenType.CastBlock);
+        Expect(TokenType.Colon);
         List<Node> assignments = new();
-        while (CurrentToken.Type is not TokenType.EndBlock or TokenType.Null)
+        while (CurrentToken.Type is not (TokenType.EndBlock or TokenType.Null))
         {
-            if (CurrentToken.Type != (TokenType.Newline | TokenType.EndBlock))
+            if (CurrentToken.Type != (TokenType.EndBlock))
             {
                 Node asn = ParseActorAssignment();
                 assignments.Add(asn);
-                Match(TokenType.Newline);
             }
             _currentLine++;
         }
 
-        Match(TokenType.EndBlock);
+        Expect(TokenType.EndBlock);
         return new Block("cast", assignments.ToArray());
     }
 
 
     private Node ParseActorAssignment()
     {
-        string name = Match(TokenType.Name).Value;
-        Match(TokenType.As);
-        string type = Match(TokenType.Name).Value;
+        string name = Expect(TokenType.Name).Value;
+        Expect(TokenType.As);
+        string type = Expect(TokenType.Name).Value;
+        Expect(TokenType.Semicolon);
         return new ActorAssignment(name, type, _state);
     }
 
     private Node ParseFuncBlock()
     {
-        Match(TokenType.Define);
-        Match(TokenType.Func);
-        string func_id = Match(TokenType.Name).Value;
+        Expect(TokenType.Define);
+        Expect(TokenType.Func);
+        string func_id = Expect(TokenType.Name).Value;
         string for_actor = "all"; // if the 'for' is not specified, every actor has access to this function.
         if (CurrentToken.Type == TokenType.For)
         {
             Consume();   
-            for_actor = Match(TokenType.Name).Value;
+            for_actor = Expect(TokenType.Name).Value;
         }
-        Match(TokenType.LParen);
+        Expect(TokenType.LParen);
         List<Name> args = new();
-        while (CurrentToken.Type is not (TokenType.RParen or TokenType.Newline))
+        while (CurrentToken.Type is not (TokenType.RParen))
         {
-            string argname = Match(TokenType.Name).Value;
+            string argname = Expect(TokenType.Name).Value;
             args.Add(new Name(argname, _state));
-            if (Peek().Type != TokenType.RParen)
-                Match(TokenType.Comma);
+            if (CurrentToken.Type != TokenType.RParen)
+                Expect(TokenType.Comma);
         }
-        Match(TokenType.RParen);
-        Match(TokenType.Colon);
+        Expect(TokenType.RParen);
+        Expect(TokenType.Colon);
         List<Node> instructions = new();
         while (CurrentToken.Type is not (TokenType.EndBlock or TokenType.Null))
-        {
-            Token t = Consume();
+        { 
             if (CurrentToken.Type == TokenType.Return)
             {
-                Match(TokenType.Return);
-                if (Peek().Type != TokenType.With)
+                Expect(TokenType.Return);
+                if (CurrentToken.Type != TokenType.With)
                 {
                     instructions.Add(new ReturnStmt(func_id, new VoidNode()));
+                    Expect(TokenType.Semicolon);
                     continue;
                 }
-                Match(TokenType.With);
+                Expect(TokenType.With);
                 instructions.Add(new ReturnStmt(func_id, ParseExpression()));
+                Expect(TokenType.Semicolon);
             } else if (CurrentToken.Type == TokenType.Name)
             {
                 instructions.Add(ParseLine());
             }
-            else Match(TokenType.Newline);
-            
         }
+        
+        Expect(TokenType.EndBlock);
         return new FunctionBlock(func_id, for_actor, args.ToArray(), instructions.ToArray(), _state);
     }
     
     private Node ParseLine()
     {
-        _currentLine++;
-        string caller = Match(TokenType.Name).Value;
-        Match(TokenType.Colon);
+        string caller = Expect(TokenType.Name).Value;
+        Expect(TokenType.Colon);
         List<Node> funccalls = new();
-        while (CurrentToken.Type is not TokenType.Newline)
-        {
-            funccalls.Add(ParseFunctionCall(caller));
-            Match(TokenType.Dot);
-        }
-
-        return new Line(_currentLine, caller, funccalls.ToArray());
+        funccalls.Add(ParseFunctionCall());
+        Expect(TokenType.Semicolon);
+        return new Line(CurrentToken.Line, caller, funccalls.ToArray());
     }
 
-    private Node ParseFunctionCall(string parent_actor)
+    private FunctionCall ParseFunctionCall()
     {
-        ThrowError("Functions have not yet been implemented.");
-        return null;
+        string name = Expect(TokenType.Name).Value;
+        Expect(TokenType.LParen);
+        ParamExpressions args = ParseExprArgs();
+        Expect(TokenType.RParen);
+        return new FunctionCall(name, args, _state);
     }
 
+    private ParamExpressions ParseExprArgs()
+    {
+        List<Node> args = new();
+        while (true)
+        {
+            if (CurrentToken.Type == TokenType.RParen)
+                break;
+            Node expr = ParseExpression();
+            args.Add(expr);
+            if (CurrentToken.Type != TokenType.Comma)
+                break;
+            else 
+                Expect(TokenType.Comma);
+        }
+        return new ParamExpressions(args.ToArray());
+    }
     private Node ParseExpression()
     {
         Node l_val = ParseTerm();
@@ -210,10 +218,6 @@ public class Parser
             }
         }
         return l_val; 
-        
-        // bail
-        ThrowError("Could not find a valid expression to parse..?");
-        return null;
     }
 
     private Node ParseTerm()
@@ -239,28 +243,57 @@ public class Parser
     private Node ParseFactor()
     {
         Token t_current = Consume();
+        Node primary_factor = null;
         switch (t_current.Type)
         {
             case TokenType.Minus:
-                return new Negative(ParseFactor());
+                primary_factor = new Negative(ParseFactor());
+                break;
             case TokenType.Name: 
-                return new Name(t_current.Value, _state);
+                primary_factor = new Name(t_current.Value, _state);
+                break;
             case TokenType.IntLiteral:
-                return new Integer(int.Parse(t_current.Value));
+                primary_factor = new Integer(int.Parse(t_current.Value));
+                break;
             case TokenType.LParen:
                 Node inner = ParseExpression();
-                Token t_next = Consume();
-                if (t_next.Type != TokenType.RParen)
-                {
-                    ThrowError($"Expected ')', got {t_next.Type}");
-                    return null;
-                }
-                return inner;
+                Expect(TokenType.RParen);
+                primary_factor = inner;
+                break;
             case TokenType.StringLiteral:
-                return new StringLit(t_current.Value);
+                primary_factor = new StringLit(t_current.Value);
+                break;
         }
         
-        return null;
+        Node current_temporary_expr = primary_factor;
+        List<Node> postfixes = new(); 
+        postfixes.Add(current_temporary_expr);
+        while (CurrentToken.Type == TokenType.Dot || CurrentToken.Type == TokenType.Colon)
+        {
+            switch (CurrentToken.Type)
+            {
+                case TokenType.Dot:
+                    Expect(TokenType.Dot);
+                    DotOperator op = new DotOperator(Expect(TokenType.Name).Value);
+                    current_temporary_expr = op;
+                    break;
+                case TokenType.Colon:
+                    Expect(TokenType.Colon);
+                    FunctionCall func = ParseFunctionCall();
+                    current_temporary_expr = func;
+                    break;
+            }
+            postfixes.Add(current_temporary_expr);
+        }
+
+        if (postfixes.Count > 1)
+        {
+            return new Postfix(postfixes.ToArray());
+        }
+        else
+        {
+            return primary_factor;
+        }
     }
     
     /// <summary>
@@ -286,7 +319,7 @@ public class Parser
         return _tokens.ElementAt(_tokenIndex + ahead);
     }
 
-    Token Match(TokenType t)
+    Token Expect(TokenType t)
     {
         Token tk = Consume();
         if (tk.Type != t)
@@ -297,15 +330,21 @@ public class Parser
         return tk;
     }
 
-    bool IsBlock(TokenType t)
+    Token Expect(params TokenType[] tokens)
     {
-        if (t is (TokenType.CastBlock or TokenType.GlossaryBlock or TokenType.SceneBlock or TokenType.Define))
+        Token tk = Consume();
+        if (!tokens.Contains(tk.Type))
         {
-            return true;
+            ThrowError($"Expected any of {tokens}, got {tk}");
+            return Token.None;
         }
-
-        return false;
+        else
+        {
+            return tk;
+        } 
     }
+
+    bool IsBlock(TokenType t) => (t is (TokenType.CastBlock or TokenType.GlossaryBlock or TokenType.SceneBlock or TokenType.Define));
     internal void ThrowError(string err)
     {
         string msg = ($"At '{CurrentToken.Line}', '{CurrentToken.Column}',  token '{_tokenIndex}': {err}");

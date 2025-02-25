@@ -1,28 +1,37 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Formats.Asn1;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
+using System.Transactions;
+using System.Xml.Schema;
 
 namespace PlaywrightLang.LanguageServices;
 
 public class PwState
 {
+    public static void Log(string message)
+    {
+        Console.WriteLine("- Playwright State: " + message);
+    }
+    
+    private string _currentScopeName = "global"; 
+    private int _currentScopeIndex = 0;
+    
     private Tokeniser tokeniser;
     private Parser parser;
+    
     private Dictionary<string, PwObject> Globals = new();
-    private Dictionary<string, List<PwObject>> ScopeTable = new();
-    private string _currentScope = "global"; 
-    private int _currentScopeIndex = 0;
-    private Dictionary<string, PwActor> Cast = new();
     private Dictionary<string, Type> ValidActorTypes = new();
-    private ScopedSymbolTable Scope = new("global", 0, null);
+    private Dictionary<string, List<PwActor>> ActorTypeLookup = new();
+    private ScopedSymbolTable CurrentScope = new("global", 0, null);
+    
     public PwState()
     {
-        ValidActorTypes.Add("actor", typeof(PwActor));
-        ScopeTable.Add("global", []);
+        RegisterActorType<PwActor>("actor");
     }
 
     List<Token> LoadFile(string path)
@@ -68,22 +77,22 @@ public class PwState
         Node tree = parser.ParseChunk();
         Parser.Log($"Done in {timer.ElapsedMilliseconds}ms");
         timer.Stop();
-        Parser.Log(new Interpreter(tree).Execute());
+        Parser.Log(tree.ToString() ?? string.Empty);
     }
 
+    public object ExecuteChunk(Node node)
+    {
+        return node.Evaluate(CurrentScope);
+    }
     public void RegisterActorType<T>(string identifier)
     {
         ValidActorTypes[identifier] = typeof(T);
+        ActorTypeLookup[identifier] = new List<PwActor>();
     }
 
-    internal void SetVariable(string name, PwObject value)
+    internal void SetGlobal(string name, PwObject value)
     {
         Globals[name] = value;
-    }
-
-    internal object GetVariable(string name)
-    {
-        return Scope.Lookup(name);
     }
     internal void SetActor(string name, string actorType)
     {
@@ -93,7 +102,11 @@ public class PwState
         }
         else
         {
-            Cast[actorType] = new PwActor(name, this);
+            PwActor actor = new PwActor(name, this, CurrentScope);
+            ActorTypeLookup[actorType].Add(actor);
+            actor.CacheAllInternalMethods();
+            actor.RegisterAllDataMembers();
+            CurrentScope.AddSymbol(actor);
         }
     }
 
@@ -101,7 +114,7 @@ public class PwState
     {
         try
         {
-            return Cast[name];
+            return CurrentScope.Lookup(name) as PwActor;
         }
         catch (Exception e)
         {
@@ -109,32 +122,51 @@ public class PwState
         }
     }
 
-    internal PwFunction GetGlobalFunction(string name)
+    internal void RegisterPwFunction(PwFunction func, string actorType)
     {
-        return Globals[name] as PwFunction;
-    }
+        if (actorType == "all")
+        {
+            CurrentScope.AddSymbol(func);
+        }
+        else
+        {
+            foreach (var actor in ActorTypeLookup[actorType])
+                actor.AddMethod(func.Name, func);
+        }
+    } 
     
     internal void EnterNestedScope(string scopeName)
     {
-        _currentScope = scopeName;
+        _currentScopeName = scopeName;
+        ScopedSymbolTable newScope = new ScopedSymbolTable(scopeName, _currentScopeIndex+1, CurrentScope);
+        CurrentScope = newScope;
         _currentScopeIndex++;
-        ScopeTable.Add(_currentScope, []);
     }
 
-    internal void ExecuteScopedInstructions(Node instructions, Node[] args)
+    internal object InvokeFunction(PwActor actor, PwFunction func, PwObject[] args)
     {
-        // TODO:  
+        EnterNestedScope(func.Name);
+        object value = func.Invoke(actor, CurrentScope, args);
+        MoveOutOfCurrentScope();
+        return value;
     }
 
-    internal object InvokeFunction(PwFunction func, params object[] args)
+    internal object InvokeFunction(string funcName, PwObject[] args)
     {
-        return func.Invoke(Scope, args);
+        EnterNestedScope(funcName);
+        PwFunction func = CurrentScope.Lookup(funcName) as PwFunction;
+        if (func == null) throw new PwException($"Could not find function {funcName} in scope {CurrentScope.Name}");
+        object value = func.Invoke(null, CurrentScope, args);
+        MoveOutOfCurrentScope();
+        return value;
     }
-
     internal void MoveOutOfCurrentScope()
     {
         _currentScopeIndex -= 1;
-        ScopeTable.Remove(_currentScope);
-        _currentScope = ScopeTable.Keys.ElementAt(_currentScopeIndex);
+        if (CurrentScope.Name != "global")
+        {
+            CurrentScope = CurrentScope.Parent;
+        }
+        _currentScopeName = CurrentScope.Name;
     }
 }

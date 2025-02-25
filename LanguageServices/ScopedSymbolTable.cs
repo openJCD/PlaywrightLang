@@ -20,8 +20,30 @@ public class ScopedSymbolTable(string name, int level, ScopedSymbolTable? parent
         throw new PwException($"No symbol found for '{id}' in scope '{Name}'.");
     }
 
+    public PwObject LocalLookup(string id)
+    {
+        if (Symbols.Keys.Contains(id))
+        {
+            return Symbols[id];
+        }
+        else
+        {
+            throw new PwException($"No symbol found for '{id}' in scope '{Name}'.");
+        }
+    }
+    
+    internal void MutateSymbol(string name, PwObject symbol)
+    {
+        Symbols[name] = symbol;
+    }
+    
     internal void AddSymbol(PwObject symbol)
     {
-        Symbols.Add(Name, symbol);
+        Symbols.Add(symbol.Name, symbol);
+    }
+
+    internal void AddSymbolAlias(string alias, PwObject symbol)
+    {
+        Symbols.Add(alias, symbol);
     }
 }

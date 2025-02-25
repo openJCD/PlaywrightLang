@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.Xna.Framework.Input.Touch;
@@ -15,6 +16,8 @@ public class PwActor : PwObject
 {
     private Dictionary<string, PwFunction> CachedPwMethods     = new();
     private Dictionary<string, MethodInfo> CachedCsharpMethods = new();
+    private Dictionary<string, MemberInfo> CachedDataMembers   = new();
+    
     private PwState _state;
     [PwItem("x")]
     public int XPos { get; set; }
@@ -22,35 +25,65 @@ public class PwActor : PwObject
     [PwItem("y")]
     public int YPos { get; set; }
 
-    public PwActor(string name, PwState s)
+    public PwActor(string name, PwState s, ScopedSymbolTable parentScope) : base(name, parentScope)
     {
         _state = s;
         Name = name;
     }
     
     [PwItem("says")]
-    public virtual void Say(string dialogue) {}
+    public virtual void Say(string dialogue) {Console.WriteLine($"{Name}: {dialogue};");}
     public virtual void Ready() {}
     public virtual void Destroy() {}
 
-    public void CacheMethod(string name, PwFunction function)
+    
+    /// <summary>
+    /// Internal method that gets all methods with PwItemAttribute and caches them with the provided name.
+    /// </summary>
+    internal void CacheAllInternalMethods()
     {
-        CachedPwMethods[name] = function;
-    }
-    public void CacheMethod(string name, MethodInfo method)
-    {
-        CachedCsharpMethods[name] = method;
-    }
-    internal object InvokeMethod(string method, params object[] args)
-    {
-        if (CachedPwMethods.ContainsKey(method)) 
+        PwState.Log($"Caching methods for actor {Name}");
+        MethodInfo[] methods = GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance);
+        foreach (MethodInfo method in methods)
         {
-            return _state.InvokeFunction(CachedPwMethods[method]);
+            PwItemAttribute pwItemAttr = method.GetCustomAttribute<PwItemAttribute>();
+            if (pwItemAttr != null)
+            {
+                PwState.Log($"{Name}: cache method {method.Name} as {pwItemAttr.PwName}");
+                AddMethod(pwItemAttr.PwName, method);
+            }
         }
-        else if (CachedCsharpMethods.ContainsKey(method))
+    }
+
+    /// <summary>
+    /// Internal function that gets all non-method members with PwItemAttribute and caches them with that PwItemAttribute.PwName.
+    /// </summary>
+    internal void RegisterAllDataMembers()
+    {
+        MemberInfo[] members = GetType().GetMembers(BindingFlags.Public | BindingFlags.Instance );
+        foreach (MemberInfo member in members)
         {
-            return CachedCsharpMethods[method].Invoke(this, args);
+            if (member is MethodInfo) continue;
+            PwItemAttribute pwItemAttr = member.GetCustomAttribute<PwItemAttribute>();
+            if (pwItemAttr != null)
+            {
+                CachedDataMembers[pwItemAttr.PwName] = member;
+            }
         }
-        else throw new PwException($"Method {method} not found");   
+    }
+
+
+    /// <summary>
+    /// Get the member based on the given Playwright internal name (assigned using PwItemAttribute).
+    /// </summary>
+    /// <param name="pwMemberName">PwItem name to find</param>
+    /// <returns>
+    /// The member if it was found, or null if it wasn't.
+    /// </returns>
+    public object GetMember(string pwMemberName)
+    {
+        if (CachedDataMembers.ContainsKey(pwMemberName))
+            return CachedDataMembers[pwMemberName];
+        else return null;
     }
 }
