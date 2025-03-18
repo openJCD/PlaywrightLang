@@ -1,3 +1,5 @@
+﻿using PlaywrightLang.LanguageServices.AST;
+
 namespace PlaywrightLang.LanguageServices;
 
 public class PwFunction : PwObject
@@ -39,7 +41,7 @@ public class PwFunction : PwObject
         {
             if (n is ReturnStmt)
             {
-                return n.Evaluate(scope);
+                return (PwObject)n.Evaluate(scope);
             }
             n.Evaluate(scope);
         }

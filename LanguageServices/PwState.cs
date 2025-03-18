@@ -8,6 +8,8 @@ using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
 using System.Transactions;
 using System.Xml.Schema;
+using PlaywrightLang.LanguageServices.AST;
+using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.LanguageServices;
 
@@ -66,18 +68,19 @@ public class PwState
     
     public void ParseString(string input)
     {
-        parser = new Parser(LoadString(input), this);
-        parser.ParseChunk();
+        parser = new Parser(LoadString(input));
+        Node tree = parser.Parse();
+        Console.Write(tree.ToPrettyString(0));
     }
 
     public void ParseFile(string filepath)
     {
-        parser = new Parser(LoadFile(filepath), this);
+        parser = new Parser(LoadFile(filepath));
         Stopwatch timer = Stopwatch.StartNew();
-        Node tree = parser.ParseChunk();
-        Parser.Log($"Done in {timer.ElapsedMilliseconds}ms");
+        Node tree = parser.Parse();
         timer.Stop();
-        Parser.Log(tree.ToString() ?? string.Empty);
+        Parser.Log($"Done in {timer.ElapsedMilliseconds}ms");
+        Parser.Log(tree.ToPrettyString(0) ?? string.Empty);
     }
 
     public object ExecuteChunk(Node node)
@@ -169,4 +172,5 @@ public class PwState
         }
         _currentScopeName = CurrentScope.Name;
     }
+    
 }

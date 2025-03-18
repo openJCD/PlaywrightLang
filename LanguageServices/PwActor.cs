@@ -82,6 +82,7 @@ public class PwActor : PwObject
     /// </returns>
     public object GetMember(string pwMemberName)
     {
+        1.ToString();
         if (CachedDataMembers.ContainsKey(pwMemberName))
             return CachedDataMembers[pwMemberName];
         else return null;
