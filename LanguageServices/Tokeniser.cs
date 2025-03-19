@@ -16,7 +16,7 @@ public class Tokeniser
     private int _currentLine = 1;
     private int _currentColumn = 1;
     private int _readerIndex;
-    
+    private char _currentCharacter => _codeChars[_readerIndex];
     public Tokeniser(string data)
     {
         _codeRaw = data;
@@ -259,10 +259,22 @@ public class Tokeniser
                 _bufCurrent += ch_consumed;
                 while (char.IsDigit(Peek()) || Peek() == '.') 
                 {
-                    _bufCurrent += Consume();
+                    if (Peek() == '.')
+                    {
+                        if (char.IsNumber(Peek(1)))
+                        {
+                            _bufCurrent += Consume();
+                        }
+                        else
+                            break;
+                    }
+                    else
+                    {
+                        _bufCurrent += Consume();
+                    }
                 }
 
-                if (_bufCurrent.Contains(".")) 
+                if (_bufCurrent.Contains(".") && _bufCurrent.Split(".").Length == 2)
                     tokens.Add(new Token(TokenType.FloatLiteral, _currentLine, _currentColumn, _bufCurrent));
                 else
                     tokens.Add(new Token(TokenType.IntLiteral, _currentLine, _currentColumn, _bufCurrent));
@@ -290,9 +302,9 @@ public class Tokeniser
         {
             _wordBuffer += Consume();
         }
-        while (!char.IsLetter(Peek()))
+        while (Peek() == ' ')
         {
-            Consume(); //consume the trailing spaces or other characters
+            Consume(); //consume the trailing spaces
         }
         if (_wordBuffer == expected_word)
         {

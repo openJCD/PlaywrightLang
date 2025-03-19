@@ -3,6 +3,8 @@ calculation_1 means 2 * -2 + 7 - (10 / 2);
 calculation_2 means (5 * 5 * 5) / (-10 / -2); 
 info_1 means "This is the Playwright Pre-Alpha.";
 info_2 means 3 < 4;
+test_float = 3.14159;
+test_word_inequality = calculation_1 less than 1000; 
 
 cast:
     ronnie as actor;

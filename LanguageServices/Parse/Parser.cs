@@ -455,7 +455,6 @@ public class Parser
     
     #endregion
     
-    
     public Token Expect(string message, params TokenType[] tokenTypes)
     {
         Token t = Consume();

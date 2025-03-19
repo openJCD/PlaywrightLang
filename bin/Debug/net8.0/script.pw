@@ -6,6 +6,7 @@ info_2 means 3 < 4;
 
 cast:
     ronnie as actor;
+    james as tree;
 end
 
 # function that returns the sum of two params and is defined for all actors.
