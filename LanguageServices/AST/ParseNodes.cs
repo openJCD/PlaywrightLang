@@ -5,7 +5,6 @@ using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.LanguageServices.AST;
 
-
 public class ExitNode : Node
 {
     public override object Evaluate(ScopedSymbolTable scope)

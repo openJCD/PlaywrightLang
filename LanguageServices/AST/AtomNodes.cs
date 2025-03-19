@@ -1,7 +1,7 @@
 ﻿using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.LanguageServices.AST;
-public class Name(string identifier) : Node
+public class Name(string identifier) : Node, IQualifiedIdentifier
 {
     public readonly string Identifier = identifier;
 
@@ -12,6 +12,12 @@ public class Name(string identifier) : Node
 
         return scope.Lookup(Identifier);
     }
+
+    public void Set(object value)
+    {
+        throw new System.NotImplementedException();
+    }
+
     public override string ToPrettyString(int level) => AddSpaces(level, $"name: '{Identifier}'");
 }
 public class Integer(int value) : Node

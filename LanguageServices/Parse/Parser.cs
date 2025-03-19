@@ -30,24 +30,35 @@ public class Parser
     public Node ParseBlock()
     {
         Node block = null;
-        if (IsBlockToken(CurrentToken.Type))
+        try
         {
-            
-            //TODO: Parse various block types
-            switch (CurrentToken.Type)
+            if (IsBlockToken(CurrentToken.Type))
             {
-                case TokenType.CastBlock:
-                    block = ParseCastBlock();
-                    Expect("Expected 'end'.", TokenType.EndBlock);
-                    break;
-                case TokenType.SceneBlock:
-                    block = ParseSceneBlock();
-                    break;
+                //TODO: Parse various block types
+                switch (CurrentToken.Type)
+                {
+                    case TokenType.CastBlock:
+                        block = ParseCastBlock();
+                        Expect("Expected 'end'.", TokenType.EndBlock);
+                        break;
+                    case TokenType.SceneBlock:
+                        block = ParseSceneBlock();
+                        break;
+                }
+            }
+            else
+            {
+                return ParseStatement();
             }
         }
-        else
+        catch (ParseException e)
         {
-            return ParseStatement();
+            Token t = Consume();
+            while (t.Type != TokenType.EndBlock && t.Type != TokenType.Semicolon)
+            {
+                t = Consume();
+            }
+            return ParseBlock();
         }
 
         if (block!=null)
@@ -90,9 +101,10 @@ public class Parser
     
     #region Statements
 
-    public Statement ParseStatement()
+    public Statement ParseStatement() 
     {
         Node expr = null;
+
         switch (CurrentToken.Type)
         {
             case TokenType.Return:
@@ -113,6 +125,7 @@ public class Parser
                 Expect("Expected ';' after expression statement.", TokenType.Semicolon);
                 break;
         }
+        
         return new Statement(expr);
     }
 
@@ -122,7 +135,22 @@ public class Parser
         List<Statement> statements = new();
         while (CurrentToken.Type != TokenType.EndBlock && CurrentToken.Type != TokenType.EOF)
         {
-            statements.Add(ParseStatement());
+            try
+            {
+                statements.Add(ParseStatement());
+            }
+            catch (ParseException parseEx)
+            {
+                while (true)
+                {
+                    Token recovery_token = Consume();
+                    if (recovery_token.Type == TokenType.Semicolon)
+                    {
+                        statements.Add(ParseStatement());
+                        break;
+                    }
+                }
+            }
         }
 
         return new CompoundStmt(statements.ToArray());
@@ -145,7 +173,7 @@ public class Parser
     {
         Expect("Expected 'if'", TokenType.If);
         Expression condition = ParseExpression();
-        Expect("Expected ':' after condition", TokenType.Colon);
+        Expect("Expected 'then' after if condition", TokenType.Then);
         CompoundStmt stmt = ParseCompoundStmt();
         Token t = Expect("Expected 'end' or 'else'.", TokenType.EndBlock, TokenType.Else);
         //TODO: Implement if/else statements.
@@ -156,9 +184,9 @@ public class Parser
     {
         Expect("Expected 'while'", TokenType.While);
         Expression condition = ParseExpression();
-        Expect("Expected ':' after condition", TokenType.Colon);
+        Expect("Expected 'do' after while condition", TokenType.Do);
         CompoundStmt stmt = ParseCompoundStmt();
-        Expect("Expected 'end' to conclude loop condition.", TokenType.EndBlock);
+        Expect("Expected 'end' to conclude loop.", TokenType.EndBlock);
         return new WhileLoop(condition, stmt);
     }
 
@@ -224,24 +252,24 @@ public class Parser
         Node lvalue = ParseLogicalOr();
         if (IsAssignmentToken(CurrentToken.Type))
         {
-            if (lvalue.GetType() != typeof(Name) && lvalue.GetType() != typeof(DotOperator))
+            if (lvalue.GetType() != typeof(Name) && lvalue.GetType() != typeof(AccessOperator))
             {
                 throw Error(CurrentToken, "Expected lvalue of assignment expression to be an identifier or qualified path.");
             }
 
-            Token t = Consume();
+            var t = Consume();
             switch (t.Type)
             {
                 case TokenType.Assignment:
-                    return new AssignmentExpression((Name)lvalue, ParseAssignmentExpression());
+                    return new AssignmentExpression((IQualifiedIdentifier)lvalue, ParseAssignmentExpression());
                 case TokenType.AddAssign:
-                    return new IncrementalAssignment((Name)lvalue, ParseAssignmentExpression());
+                    return new IncrementalAssignment((IQualifiedIdentifier)lvalue, ParseAssignmentExpression());
                 case TokenType.SubAssign:
-                    return new DecrementalAssignment((Name)lvalue, ParseAssignmentExpression());
+                    return new DecrementalAssignment((IQualifiedIdentifier)lvalue, ParseAssignmentExpression());
                 case TokenType.DivAssign:
-                    return new DivAssignment((Name)lvalue, ParseAssignmentExpression());
+                    return new DivAssignment((IQualifiedIdentifier)lvalue, ParseAssignmentExpression());
                 case TokenType.MultAssign:
-                    return new DivAssignment((Name)lvalue, ParseAssignmentExpression());
+                    return new MultAssignment((IQualifiedIdentifier)lvalue, ParseAssignmentExpression());
             }
         }
 
@@ -273,10 +301,10 @@ public class Parser
     public Node ParseEqualityExpr()
     {
         Node lvalue = ParseRelationalExpr();
-        while (CurrentToken.Type == TokenType.Equal || CurrentToken.Type == TokenType.NotEqual)
+        while (CurrentToken.Type == TokenType.EqualTo || CurrentToken.Type == TokenType.NotEqual)
         {
-            Token t = Expect("Expected '==' or '!='", TokenType.Equal);
-            if (CurrentToken.Type == TokenType.Equal)
+            Token t = Consume();
+            if (t.Type == TokenType.EqualTo)
             {
                 lvalue = new EqualOperator(lvalue, ParseRelationalExpr());
             }
@@ -296,21 +324,14 @@ public class Parser
         {
             Token t = Expect("Expected relational operator.", TokenType.MoreThan, TokenType.LessThan, TokenType.MoreThanEq,
                 TokenType.LessThanEq);
-            switch (t.Type)
+            lvalue = t.Type switch
             {
-                case TokenType.MoreThan:
-                    lvalue = new GreaterThanOperator(lvalue, ParseAdditiveExpr());
-                    break;
-                case TokenType.LessThan:
-                    lvalue = new LessThanOperator(lvalue, ParseAdditiveExpr());
-                    break;
-                case TokenType.MoreThanEq:
-                    lvalue = new GreaterThanEqOperator(lvalue, ParseAdditiveExpr());
-                    break;
-                case TokenType.LessThanEq:
-                    lvalue = new LessThanEqOperator(lvalue, ParseAdditiveExpr());
-                    break;
-            }
+                TokenType.MoreThan   => new GreaterThanOperator(lvalue, ParseAdditiveExpr()),
+                TokenType.LessThan   => new LessThanOperator(lvalue, ParseAdditiveExpr()),
+                TokenType.MoreThanEq => new GreaterThanEqOperator(lvalue, ParseAdditiveExpr()),
+                TokenType.LessThanEq => new LessThanEqOperator(lvalue, ParseAdditiveExpr()),
+                _ => lvalue
+            };
         }
         return lvalue;
     }
@@ -353,21 +374,26 @@ public class Parser
 
         return lvalue;
     }
-
     public Node ParsePathExpr()
     {
-        Node lvalue = ParsePrimary();
-        while (CurrentToken.Type is TokenType.Dot or TokenType.Colon)
+        Node lvalue = ParsePostfixExpression();
+        while (CurrentToken.Type is TokenType.Colon)
         {
-            Token t = Consume();
-            if (t.Type == TokenType.Dot)
-            {
-                lvalue = new DotOperator(lvalue, new Name(Expect("Expected name after '.'",TokenType.Name).Value));
-            }
-            else
-            {
-                lvalue = new ColonOperator(lvalue, (FunctionCall)ParseFunctionCall());
-            }
+            Token t = Expect("Expected ':' ", TokenType.Colon);
+            lvalue = new AccessOperator(lvalue, ParsePostfixExpression());
+        }
+        
+        return lvalue;
+    }
+    public Node ParsePostfixExpression()
+    {
+        Node lvalue = ParsePrimary();
+        while (CurrentToken.Type is TokenType.LParen)
+        {
+            Expect("Expected '(' to begin function call operator", TokenType.LParen);
+            ParamExpressions parameters = (ParamExpressions)ParseParameterExprs();
+            Expect("Expected ')' to close function call operator", TokenType.RParen);
+            lvalue = new FunctionCall(lvalue, parameters);
         }
 
         return lvalue;
@@ -410,32 +436,16 @@ public class Parser
             TokenType.BoolFalse,
             TokenType.BoolTrue,
             TokenType.Name);
-        switch (t.Type)
+        return t.Type switch
         {
-            case (TokenType.StringLiteral) :
-                return new StringLit(t.Value);
-            case (TokenType.IntLiteral) :
-                return new Integer(int.Parse(t.Value));
-            case (TokenType.FloatLiteral):
-                return new FloatLit(float.Parse(t.Value));
-            case (TokenType.BoolTrue):
-                return new BooleanLit(true);
-            case (TokenType.BoolFalse):
-                return new BooleanLit(false);
-            case (TokenType.Name):
-                return new Name(t.Value); 
-        }
-
-        throw Error(t , "Something went wrong - have you forgotten a semicolon?");
-    }
-
-    public Node ParseFunctionCall()
-    {
-        Token t = Expect("Expected identifier for function call.", TokenType.Name);
-        Expect("Expected '(' to begin function parameters.", TokenType.LParen);
-        ParamExpressions _params = (ParamExpressions)ParseParameterExprs();
-        Expect("Expected ')' to conclude function parameters.", TokenType.RParen);
-        return new FunctionCall(t.Value, _params);
+            TokenType.StringLiteral => new StringLit(t.Value),
+            TokenType.IntLiteral => new Integer(int.Parse(t.Value)),
+            TokenType.FloatLiteral => new FloatLit(float.Parse(t.Value)),
+            TokenType.BoolTrue => new BooleanLit(true),
+            TokenType.BoolFalse => new BooleanLit(false),
+            TokenType.Name => new Name(t.Value),
+            _ => throw Error(t, "Something went wrong - have you forgotten a semicolon?")
+        };
     }
 
     public Node ParseParameterExprs()
@@ -464,13 +474,13 @@ public class Parser
         }
         else
         {
-            throw Error(t, message);
+            throw Error(Peek(-1), message);
         }
     }
     
     public Token Consume()
     {
-        if (_index + 1  < _tokenStream.Count)
+        if (_index < _tokenStream.Count)
         {
             return _tokenStream[_index++];
         }
@@ -501,7 +511,7 @@ public class Parser
     
     private ParseException Error(Token token, string message)
     {
-        Console.Error.WriteLine($"Playwright parse error at {token.Line}:{token.Column}, {token.Type.ToString()}: \r\n ---> {message}");
+        Console.Error.WriteLine($"Playwright parse error at {token.Line}:{token.Column}, {token.Type.ToString()}: \r\n ---> {message}\r\n");
         return new ParseException(message);
     }
     public static void Log(string message, string tag = "INFO")

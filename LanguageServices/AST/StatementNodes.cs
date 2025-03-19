@@ -122,7 +122,7 @@ public class WhileLoop(Expression conditional, CompoundStmt statements) : Node
     public override string ToPrettyString(int level)
     {
         string s = AddSpaces(level, "while loop: ( \r\n");
-        s += AddSpaces(level + 1, "condition: (");
+        s += AddSpaces(level + 1, "condition: (\r\n");
         s += $"{conditional.ToPrettyString(level + 2)},\r\n";
         s += AddSpaces(level + 1, ")\r\n");
         s += $"{statements.ToPrettyString(level + 1)},\r\n";

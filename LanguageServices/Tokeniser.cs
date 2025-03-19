@@ -94,7 +94,13 @@ public class Tokeniser
                     tokens.Add(new Token(TokenType.Semicolon, _currentLine, _currentColumn));
                     break;
                 case '=':
-                    tokens.Add(new Token(TokenType.Assignment, _currentLine, _currentColumn));
+                    if (Peek() == '=')
+                    {
+                        tokens.Add(new Token(TokenType.EqualTo, _currentLine, _currentColumn));
+                        Consume();
+                    }
+                    else
+                        tokens.Add(new Token(TokenType.Assignment, _currentLine, _currentColumn));
                     break;          
                 case '<':
                     if (Peek() == '=')
@@ -235,6 +241,12 @@ public class Tokeniser
                     case "if":
                         tokens.Add(new Token(TokenType.If, _currentLine, _currentColumn));
                         break;
+                    case "then":
+                        tokens.Add(new Token(TokenType.Then, _currentLine, _currentColumn));
+                        break;
+                    case "do":
+                        tokens.Add(new Token(TokenType.Do, _currentLine, _currentColumn));
+                        break;
                     case "or":
                         tokens.Add(new Token(TokenType.LogicalOr, _currentLine, _currentColumn));
                         break;
@@ -243,6 +255,9 @@ public class Tokeniser
                         break;
                     case "else":
                         tokens.Add(new Token(TokenType.Else, _currentLine, _currentColumn));
+                        break;
+                    case "equals":
+                        tokens.Add(new Token(TokenType.EqualTo, _currentLine, _currentColumn));
                         break;
                     default:
                         tokens.Add(new Token(TokenType.Name, _currentLine, _currentColumn, _bufCurrent));
@@ -351,10 +366,9 @@ public enum TokenType
     Minus, // -
     Multiply,// *
     Divide, // /
-    Exponent, // ^
+    Exponent, // ^ TODO
     Name, // <user-defined token name>
     SceneBlock, // scene
-    GlossaryBlock, // glossary 
     CastBlock, // cast
     SequenceBlock, // sequence (equivalent to function)
     Colon, // :
@@ -379,7 +393,7 @@ public enum TokenType
     DivAssign,
     AddAssign,
     SubAssign,
-    Equal,
+    EqualTo,
     NotEqual,
     MoreThan,
     LessThan,
@@ -389,7 +403,9 @@ public enum TokenType
     LogicalOr,
     LogicalAnd,
     FloatLiteral,
-    Else
+    Else,
+    Then,
+    Do
 }
 
 public struct Token

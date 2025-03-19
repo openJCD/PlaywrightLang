@@ -6,6 +6,7 @@ namespace PlaywrightLang.LanguageServices.AST;
 
 public class Expression(Node expr) : Node
 {
+    Node Inner = expr;
     public override object Evaluate(ScopedSymbolTable scope)
     {
         return expr.Evaluate(scope);
@@ -27,7 +28,7 @@ public class Expression(Node expr) : Node
 
 #region function
 
-public class FunctionCall(string id, ParamExpressions args) : Node
+public class FunctionCall(Node path, ParamExpressions args) : Node
 {
     public override object Evaluate(ScopedSymbolTable scope)
     {
@@ -35,8 +36,9 @@ public class FunctionCall(string id, ParamExpressions args) : Node
     }
     public override string ToPrettyString(int level)
     {
-        string s = AddSpaces(level, $"function call '{id}': (\r\n");
-        s += $"{args.ToPrettyString(level + 1) }\r\n";
+        string s = AddSpaces(level, $"function call: (\r\n");
+        s += $"{path.ToPrettyString(level + 1)},\r\n";
+        s += $"{args.ToPrettyString(level + 1)}\r\n";
         s += AddSpaces(level, ")");
         return s;
     }
@@ -119,7 +121,7 @@ public class DeclarationParameter(Name id, Node? literal) : Node
 
 #region assignment
 
-public class AssignmentExpression(Name lvalue, Node rvalue) : Node
+public class AssignmentExpression(IQualifiedIdentifier lvalue, Node rvalue) : Node 
 {
     public override object Evaluate(ScopedSymbolTable scope)
     {
@@ -136,7 +138,7 @@ public class AssignmentExpression(Name lvalue, Node rvalue) : Node
     }
 }
 
-public class IncrementalAssignment(Name lvalue, Node rvalue) : Node
+public class IncrementalAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
 {
     public override object Evaluate(ScopedSymbolTable scope)
     {
@@ -152,7 +154,7 @@ public class IncrementalAssignment(Name lvalue, Node rvalue) : Node
         return s;
     }
 }
-public class DecrementalAssignment(Name lvalue, Node rvalue) : Node
+public class DecrementalAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
 {
     public override object Evaluate(ScopedSymbolTable scope)
     {
@@ -169,7 +171,7 @@ public class DecrementalAssignment(Name lvalue, Node rvalue) : Node
     }
 }
 
-public class DivAssignment(Name lvalue, Node rvalue) : Node
+public class DivAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
 {
     public override object Evaluate(ScopedSymbolTable scope)
     {
@@ -185,7 +187,7 @@ public class DivAssignment(Name lvalue, Node rvalue) : Node
         return s;
     }
 }
-public class MultAssignment(Name lvalue, Node rvalue) : Node
+public class MultAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
 {
     public override object Evaluate(ScopedSymbolTable scope)
     {
@@ -261,9 +263,16 @@ public class UnaryNot(Node value) : Node
 #region operator
 
 #region non-math
-public class DotOperator(Node left, Name right) : Node
+public class DotOperator(Node left, Name right) : Node, IQualifiedIdentifier
 {
+    private Node Left = left;
+    private Node Right = right;
     public override object Evaluate(ScopedSymbolTable scope)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Set(object value)
     {
         throw new NotImplementedException();
     }
@@ -278,16 +287,24 @@ public class DotOperator(Node left, Name right) : Node
     }
 }
 
-public class ColonOperator(Node left, FunctionCall right) : Node
+public class AccessOperator(Node left, Node right) : Node, IQualifiedIdentifier
 {
+    private Node Left = left;
+    private Node Right = right;
+    
     public override object Evaluate(ScopedSymbolTable scope)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Set(object value)
     {
         throw new NotImplementedException();
     }
 
     public override string ToPrettyString(int level)
     {
-        string s = AddSpaces(level, "call member function: (\r\n");
+        string s = AddSpaces(level, "access member: (\r\n");
         s += $"{left.ToPrettyString(level + 1) },\r\n";
         s += $"{right.ToPrettyString(level + 1) }\r\n";
         s += AddSpaces(level, ")");
@@ -298,6 +315,9 @@ public class ColonOperator(Node left, FunctionCall right) : Node
 #region equality
 public class EqualOperator(Node left, Node right) : Node
 {
+    private Node Left = left;
+    private Node Right = right;
+    
     public override object Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
@@ -315,6 +335,9 @@ public class EqualOperator(Node left, Node right) : Node
 
 public class NotEqualOperator(Node left, Node right) : Node
 {
+    private Node Left = left;
+    private Node Right = right;
+
     public override object Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
@@ -335,6 +358,9 @@ public class NotEqualOperator(Node left, Node right) : Node
 
 public class GreaterThanOperator(Node left, Node right) : Node
 {
+    private Node Left = left;
+    private Node Right = right;
+
     public override object Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
@@ -351,6 +377,9 @@ public class GreaterThanOperator(Node left, Node right) : Node
 }
 public class LessThanOperator(Node left, Node right) : Node
 {
+    private Node Left = left;
+    private Node Right = right;
+
     public override object Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
@@ -367,6 +396,9 @@ public class LessThanOperator(Node left, Node right) : Node
 }
 public class GreaterThanEqOperator(Node left, Node right) : Node
 {
+    private Node Left = left;
+    private Node Right = right;
+
     public override object Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
@@ -383,6 +415,9 @@ public class GreaterThanEqOperator(Node left, Node right) : Node
 }
 public class LessThanEqOperator(Node left, Node right) : Node
 {
+    private Node Left = left;
+    private Node Right = right;
+
     public override object Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();

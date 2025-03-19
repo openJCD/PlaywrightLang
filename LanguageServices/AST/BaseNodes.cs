@@ -4,6 +4,17 @@ using System.Text;
 using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.LanguageServices.AST;
+
+public interface IQualifiedIdentifier
+{
+    /// <summary>
+    /// Set the value associated with this path or pure identifier.
+    /// </summary>
+    /// <param name="value"></param>
+    public void Set(object value);
+    public string ToPrettyString(int level);
+}
+
 public abstract class Node
 {
     public abstract object Evaluate(ScopedSymbolTable scope);
@@ -13,10 +24,14 @@ public abstract class Node
 
     protected string AddSpaces(int level, string input)
     {
-        string o = input;
+        string o = '|' + input;
         for (int i = 0; i < level; i++)
         {
-            o = o.Insert(0, "  ");
+            o = o.Insert(1, "-");
+            if (i == level - 1)
+            {
+                o = o.Insert(level+1, " ");
+            }
         }
 
         return o;
@@ -69,11 +84,11 @@ public class Chunk : Node
     public override string ToPrettyString(int level)
     {
         StringBuilder sb = new StringBuilder();
-        sb.Append(AddSpaces(level, "\r\nbegin chunk:\r\n"));
+        sb.Append("\r\nbegin chunk:\r\n");
         foreach (Node nd in _nodes)
         {
             sb.AppendLine(nd.ToPrettyString(level + 1)+",");
         }
-        return sb.AppendLine(AddSpaces(level , "\r\nend chunk\r\n")).ToString(); 
+        return sb.AppendLine("\r\nend chunk\r\n").ToString(); 
     }
 }
