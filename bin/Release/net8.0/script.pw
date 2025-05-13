@@ -1,0 +1,6 @@
+﻿enter ronnie as actor;
+
+# test function with a lot of parameters:
+func hello(param1 = "hello, ", param2 = "world!", param3 = " :)"):
+    ronnie: says(param1, param2, param3);
+end
