@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Formats.Asn1;
 using System.IO;
@@ -9,6 +10,9 @@ using System.Reflection.Metadata.Ecma335;
 using System.Transactions;
 using System.Xml.Schema;
 using PlaywrightLang.LanguageServices.AST;
+using PlaywrightLang.LanguageServices.Object;
+using PlaywrightLang.LanguageServices.Object.Primitive;
+using PlaywrightLang.LanguageServices.Object.Types;
 using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.LanguageServices;
@@ -22,27 +26,28 @@ public class PwState
     
     private string _currentScopeName = "global"; 
     private int _currentScopeIndex = 0;
-    
-    private Tokeniser tokeniser;
+    public Tokeniser Tokeniser { get; private set; }
     private Parser parser;
-    
-    private Dictionary<string, PwObject> Globals = new();
-    private Dictionary<string, Type> ValidActorTypes = new();
-    private Dictionary<string, List<PwActor>> ActorTypeLookup = new();
     private ScopedSymbolTable CurrentScope = new("global", 0, null);
     
     public PwState()
     {
-        RegisterActorType<PwActor>("actor");
+        RegisterType<PwActor>("actor");
+        RegisterType<PwNumeric>("float");
+        RegisterType<PwString>("string");
+        RegisterType<PwObjectClass>("object");
+        RegisterType<PwFunction>("function");
+        // testing instantiation
+        CreateInstanceOfTypeName("actor", "ronnie", "ronnie");
     }
 
-    List<Token> LoadFile(string path)
+    public List<Token> LoadFile(string path)
     {
         Stream s = File.OpenRead(path);
         StreamReader sr = new StreamReader(s);
-        tokeniser = new Tokeniser(sr.ReadToEnd());
+        Tokeniser = new Tokeniser(sr.ReadToEnd());
         Console.WriteLine($"Playwright Lexer: File {path} -> Tokens: ");
-        List<Token> tokens = tokeniser.Tokenise();
+        List<Token> tokens = Tokeniser.Tokenise();
         int count = 0;
         tokens.ForEach(t =>
         {
@@ -54,9 +59,9 @@ public class PwState
 
     List<Token> LoadString(string s)
     {
-        tokeniser = new Tokeniser(s);
+        Tokeniser = new Tokeniser(s);
         Console.WriteLine("• Playwright Lexer: String Input -> Tokens: ");
-        List<Token> tokens = tokeniser.Tokenise();
+        List<Token> tokens = Tokeniser.Tokenise();
         int count = 0;
         tokens.ForEach(t =>
         {
@@ -67,8 +72,7 @@ public class PwState
     }
     
     public void ParseString(string input)
-    {
-        parser = new Parser(LoadString(input));
+    { 
         Node tree = parser.Parse();
         Console.Write(tree.ToPrettyString(0));
     }
@@ -87,56 +91,11 @@ public class PwState
     {
         return node.Evaluate(CurrentScope);
     }
-    public void RegisterActorType<T>(string identifier)
-    {
-        ValidActorTypes[identifier] = typeof(T);
-        ActorTypeLookup[identifier] = new List<PwActor>();
-    }
 
-    internal void SetGlobal(string name, PwObject value)
+    public void RegisterType<T>(string typeName) where T : PwObjectClass
     {
-        Globals[name] = value;
+        CurrentScope.AddSymbol(typeName, new PwCsharpInstance(new PwType<T>(typeName)));
     }
-    internal void SetActor(string name, string actorType)
-    {
-        if (!ValidActorTypes.ContainsKey(actorType))
-        {
-            throw new PwTypeException(actorType, "Type does not exist. Have you tried registering it with RegisterActorType<T>()?");
-        }
-        else
-        {
-            PwActor actor = new PwActor(name, this, CurrentScope);
-            ActorTypeLookup[actorType].Add(actor);
-            actor.CacheAllInternalMethods();
-            actor.RegisterAllDataMembers();
-            CurrentScope.AddSymbol(actor);
-        }
-    }
-
-    internal PwActor GetActor(string name)
-    {
-        try
-        {
-            return CurrentScope.Lookup(name) as PwActor;
-        }
-        catch (Exception e)
-        {
-            throw new PwException($"Could not find actor {name}", e);
-        }
-    }
-
-    internal void RegisterPwFunction(PwFunction func, string actorType)
-    {
-        if (actorType == "all")
-        {
-            CurrentScope.AddSymbol(func);
-        }
-        else
-        {
-            foreach (var actor in ActorTypeLookup[actorType])
-                actor.AddMethod(func.Name, func);
-        }
-    } 
     
     internal void EnterNestedScope(string scopeName)
     {
@@ -145,21 +104,13 @@ public class PwState
         CurrentScope = newScope;
         _currentScopeIndex++;
     }
-
-    internal object InvokeFunction(PwActor actor, PwFunction func, PwObject[] args)
-    {
-        EnterNestedScope(func.Name);
-        object value = func.Invoke(actor, CurrentScope, args);
-        MoveOutOfCurrentScope();
-        return value;
-    }
-
-    internal object InvokeFunction(string funcName, PwObject[] args)
+    
+    internal object InvokeFunction(string funcName, params PwInstance[] args)
     {
         EnterNestedScope(funcName);
-        PwFunction func = CurrentScope.Lookup(funcName) as PwFunction;
+        PwCallableInstance func = CurrentScope.Lookup(funcName) as PwCallableInstance;
         if (func == null) throw new PwException($"Could not find function {funcName} in scope {CurrentScope.Name}");
-        object value = func.Invoke(null, CurrentScope, args);
+        object value = func.Invoke(args);
         MoveOutOfCurrentScope();
         return value;
     }
@@ -171,6 +122,19 @@ public class PwState
             CurrentScope = CurrentScope.Parent;
         }
         _currentScopeName = CurrentScope.Name;
+    }
+
+    private PwInstance CreateInstanceOfTypeName(string typeName, string id, params object[] args)
+    {
+        PwInstance[] pwArgs = new PwInstance[args.Length];
+        for (int i = 0; i < args.Length; i++)
+        {
+            pwArgs[i] = args[i].AsPwInstance();
+        }
+        PwCallableInstance method =  CurrentScope.Lookup(typeName).GetMethod("__new__");
+        PwInstance inst = method.Invoke(pwArgs);
+        CurrentScope.AddSymbol(id, inst);
+        return inst;
     }
     
 }

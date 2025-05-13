@@ -1,16 +1,17 @@
 #nullable enable
 using System.Collections.Generic;
+using PlaywrightLang.LanguageServices.Object;
 
 namespace PlaywrightLang.LanguageServices;
 
 public class ScopedSymbolTable(string name, int level, ScopedSymbolTable? parent)
 {
-    private Dictionary<string, PwObject> Symbols = new();
+    private Dictionary<string, PwInstance> Symbols = new();
     public readonly ScopedSymbolTable Parent = parent;
     public readonly int Level = level;
     public readonly string Name = name;
 
-    public PwObject Lookup(string id)
+    public PwInstance Lookup(string id)
     {
         if (Symbols.Keys.Contains(id))
         {
@@ -19,30 +20,17 @@ public class ScopedSymbolTable(string name, int level, ScopedSymbolTable? parent
         if (Parent != null) return Parent.Lookup(id);
         throw new PwException($"No symbol found for '{id}' in scope '{Name}'.");
     }
-
-    public PwObject LocalLookup(string id)
-    {
-        if (Symbols.Keys.Contains(id))
-        {
-            return Symbols[id];
-        }
-        else
-        {
-            throw new PwException($"No symbol found for '{id}' in scope '{Name}'.");
-        }
-    }
-    
-    internal void MutateSymbol(string name, PwObject symbol)
+    internal void MutateSymbol(string name, PwInstance symbol)
     {
         Symbols[name] = symbol;
     }
     
-    internal void AddSymbol(PwObject symbol)
+    internal void AddSymbol(string name, PwInstance symbol)
     {
-        Symbols.Add(symbol.Name, symbol);
+        Symbols.Add(name, symbol);
     }
 
-    internal void AddSymbolAlias(string alias, PwObject symbol)
+    internal void AddSymbolAlias(string alias, PwInstance symbol)
     {
         Symbols.Add(alias, symbol);
     }

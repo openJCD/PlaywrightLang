@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Security;
+using PlaywrightLang.LanguageServices.Object;
 
 namespace PlaywrightLang.LanguageServices.AST;
 
 
 public class Statement(Node expr) : Node 
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         return expr.Evaluate(scope);
     }
@@ -23,14 +25,15 @@ public class Statement(Node expr) : Node
 public class CompoundStmt(params Statement[] args) : Node
 {
     private Statement[] statements = args;
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         foreach (Statement s in args)
         {
             s.Evaluate(scope);
         }
 
-        return new VoidNode();
+        //TODO: Create null instance type.
+        return new PwInstance();
     }
 
     public override string ToPrettyString(int level)
@@ -47,9 +50,9 @@ public class CompoundStmt(params Statement[] args) : Node
 
 public class ReturnStmt(Node retValue) :  Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        return retValue.Evaluate(scope);
+        throw new PwReturn(retValue.Evaluate(scope));
     }
 
     public override string ToPrettyString(int level)
@@ -63,13 +66,32 @@ public class ReturnStmt(Node retValue) :  Node
     }
 }
 
+public class Instantiation(string name, Name typeName, ParamExpressions args) : Node
+{
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    {
+        var instance = typeName.Evaluate(scope).GetMethod("__new__").Invoke(args.AsArray(scope));
+        scope.AddSymbol(name, instance);
+        return instance;
+    }
+    public override string ToPrettyString(int level)
+    {
+        string s = AddSpaces(level, "instantiation: (\r\n");
+        s += AddSpaces(level + 1, $"name: {name},\r\n");
+        s += AddSpaces(level + 1, $"type: {typeName},\r\n");
+        s += args.ToPrettyString(level+1);
+        s += AddSpaces(level, ")");
+        return s;
+    }
+}
+
 public class FunctionBlock(string id, string owner, ParamNames args, CompoundStmt body) : Node
 {
     private string Id = id;
     private string Owner = owner;
     private ParamNames Args = args;
     private CompoundStmt Body = body;
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -86,7 +108,7 @@ public class FunctionBlock(string id, string owner, ParamNames args, CompoundStm
 
 public class IfStmt(Expression conditional, CompoundStmt statements) : Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         if (conditional.IsTruthy(scope))
         {
@@ -110,7 +132,7 @@ public class IfStmt(Expression conditional, CompoundStmt statements) : Node
 
 public class WhileLoop(Expression conditional, CompoundStmt statements) : Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         while (conditional.IsTruthy(scope))
         {

@@ -1,5 +1,9 @@
 ﻿#nullable enable
 using System;
+using System.Collections.Generic;
+using System.Formats.Asn1;
+using System.Linq;
+using PlaywrightLang.LanguageServices.Object;
 using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.LanguageServices.AST;
@@ -7,7 +11,7 @@ namespace PlaywrightLang.LanguageServices.AST;
 public class Expression(Node expr) : Node
 {
     Node Inner = expr;
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         return expr.Evaluate(scope);
     }
@@ -30,7 +34,7 @@ public class Expression(Node expr) : Node
 
 public class FunctionCall(Node path, ParamExpressions args) : Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -47,12 +51,25 @@ public class FunctionCall(Node path, ParamExpressions args) : Node
 public class ParamExpressions(ParamExpressions previous, Node current) : Node
 {
 
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        // create dictionary of parameters and return it 
         throw new NotImplementedException();
     }
 
+    public PwInstance[] AsArray(ScopedSymbolTable scope)
+    {
+        List<PwInstance> result;
+        if (previous == null)
+        {
+            result = new List<PwInstance>();
+        }
+        else
+        {
+            result = previous.AsArray(scope).ToList();
+        }
+        result.Add(current.Evaluate(scope));
+        return result.ToArray();
+    }
     public override string ToPrettyString(int level)
     {
         string s = AddSpaces(level, "param expr: (\r\n");
@@ -75,12 +92,27 @@ public class ParamNames(ParamNames previous, DeclarationParameter current) : Nod
 {
     private ParamNames Prev = previous;
     private DeclarationParameter Current = current;
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        // compile a dictionary of the prior ParamNames plus the current one
-        throw new NotImplementedException();
+        return null;
     }
-
+    // compile a dictionary of the prior ParamNames plus the current one.
+    // the PwInstance? in each pair represents the default value 
+    public Dictionary<string, PwInstance?> GetParameters(ScopedSymbolTable scope)
+    {
+        Dictionary<string, PwInstance?> parameters;
+        if (Prev == null)
+        {
+             parameters = previous.GetParameters(scope);
+        }
+        else
+        {
+            parameters = new();
+        }
+        
+        parameters[Current.Id] = Current.Evaluate(scope);
+        return parameters;
+    }
     public override string ToPrettyString(int level)
     {
         string s = AddSpaces(level, "named parameters: (\r\n");
@@ -92,7 +124,7 @@ public class ParamNames(ParamNames previous, DeclarationParameter current) : Nod
         }
         else
         {
-            s = "";
+            s = "none";
         }
         return s;    
     }
@@ -100,13 +132,13 @@ public class ParamNames(ParamNames previous, DeclarationParameter current) : Nod
 
 public class DeclarationParameter(Name id, Node? literal) : Node
 {
-    private string Id = id.Identifier;
+    public string Id = id.Value;
     private Node? Literal = literal;
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        throw new NotImplementedException();
+        return Literal?.Evaluate(scope)!;
     }
-
+    
     public override string ToPrettyString(int level)
     {
         string s = AddSpaces(level, "param: (\r\n");
@@ -123,7 +155,7 @@ public class DeclarationParameter(Name id, Node? literal) : Node
 
 public class AssignmentExpression(IQualifiedIdentifier lvalue, Node rvalue) : Node 
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -140,7 +172,7 @@ public class AssignmentExpression(IQualifiedIdentifier lvalue, Node rvalue) : No
 
 public class IncrementalAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -156,7 +188,7 @@ public class IncrementalAssignment(IQualifiedIdentifier lvalue, Node rvalue) : N
 }
 public class DecrementalAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -173,7 +205,7 @@ public class DecrementalAssignment(IQualifiedIdentifier lvalue, Node rvalue) : N
 
 public class DivAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -189,7 +221,7 @@ public class DivAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
 }
 public class MultAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -210,7 +242,7 @@ public class MultAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
 
 public class LogicalOr(Node lvalue, Node rvalue) : Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -227,7 +259,7 @@ public class LogicalOr(Node lvalue, Node rvalue) : Node
 
 public class LogicalAnd(Node lvalue, Node rvalue) : Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -244,7 +276,7 @@ public class LogicalAnd(Node lvalue, Node rvalue) : Node
 
 public class UnaryNot(Node value) : Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -263,36 +295,12 @@ public class UnaryNot(Node value) : Node
 #region operator
 
 #region non-math
-public class DotOperator(Node left, Name right) : Node, IQualifiedIdentifier
-{
-    private Node Left = left;
-    private Node Right = right;
-    public override object Evaluate(ScopedSymbolTable scope)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Set(object value)
-    {
-        throw new NotImplementedException();
-    }
-
-    public override string ToPrettyString(int level)
-    {
-        string s = AddSpaces(level, "dot operator: (\r\n");
-        s += $"{left.ToPrettyString(level + 1) },\r\n";
-        s += $"{right.ToPrettyString(level + 1) }\r\n";
-        s += AddSpaces(level, ")");
-        return s;
-    }
-}
-
 public class AccessOperator(Node left, Node right) : Node, IQualifiedIdentifier
 {
     private Node Left = left;
     private Node Right = right;
     
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -318,7 +326,7 @@ public class EqualOperator(Node left, Node right) : Node
     private Node Left = left;
     private Node Right = right;
     
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -338,7 +346,7 @@ public class NotEqualOperator(Node left, Node right) : Node
     private Node Left = left;
     private Node Right = right;
 
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -361,7 +369,7 @@ public class GreaterThanOperator(Node left, Node right) : Node
     private Node Left = left;
     private Node Right = right;
 
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -380,7 +388,7 @@ public class LessThanOperator(Node left, Node right) : Node
     private Node Left = left;
     private Node Right = right;
 
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -399,7 +407,7 @@ public class GreaterThanEqOperator(Node left, Node right) : Node
     private Node Left = left;
     private Node Right = right;
 
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -418,7 +426,7 @@ public class LessThanEqOperator(Node left, Node right) : Node
     private Node Left = left;
     private Node Right = right;
 
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -448,14 +456,15 @@ public class Add : Node
         this.Left = left;
         this.Right = right;
     }
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         try
         {
-            int l_val = (int)(((PwPrimitive)Left.Evaluate(scope)).GetData());
-            int r_val = (int)(((PwPrimitive)Right.Evaluate(scope)).GetData());
+            PwInstance l_val = Left.Evaluate(scope);
+            PwInstance r_val = Right.Evaluate(scope);
+
             Parser.Log($"Addition: {ToPrettyString(Level + 1)}");
-            return new PwPrimitive($"eval_{l_val}+{r_val}", l_val + r_val, scope);
+            return l_val.GetMethod("__add__").Invoke(l_val, r_val);
         }
         catch (Exception exception)
         {
@@ -485,14 +494,14 @@ public class Subtract : Node
         this.Right = right;
     }
     
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         try
         {
-            int l_val = (int)((Left.Evaluate(scope) as PwPrimitive).GetData());
-            int r_val = (int)((Right.Evaluate(scope) as PwPrimitive).GetData());
+            PwInstance l_val = Left.Evaluate(scope);
+            PwInstance r_val = Right.Evaluate(scope);
             Parser.Log($"Subtraction: {ToPrettyString(Level + 1)}");
-            return new PwPrimitive($"eval_{l_val}-{r_val}", l_val - r_val, scope);
+            return l_val.GetMethod("__sub__").Invoke(l_val, r_val);
         }
         catch
         {
@@ -514,9 +523,10 @@ public class Negative(Node term) : Node
 {
     public readonly Node Term = term;
 
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        return new PwPrimitive($"negate_{Term}", -(int)((Term.Evaluate(scope) as PwPrimitive).GetData()), scope);
+        PwInstance t = Term.Evaluate(scope);
+        return t.GetMethod("__neg__").Invoke(t);
     }
 
     public override string ToPrettyString(int level)
@@ -533,12 +543,11 @@ public class Multiply(Node left, Node right) : Node
     public readonly Node Left = left;
     public readonly Node Right = right;
 
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        int l_val = (int)((Left.Evaluate(scope) as PwPrimitive).GetData());
-        int r_val = (int)((Right.Evaluate(scope) as PwPrimitive).GetData());
-        Parser.Log($"Multiply: {this}");
-        return new PwPrimitive($"eval_{l_val} * {r_val}", l_val * r_val, scope); 
+        PwInstance l_val = Left.Evaluate(scope);
+        PwInstance r_val = Right.Evaluate(scope);
+        return l_val.GetMethod("__mult__").Invoke(l_val, r_val);
     }
 
     public override string ToPrettyString(int level)
@@ -557,12 +566,11 @@ public class Divide(Node left, Node right) : Node
     public readonly Node Left = left;
     public readonly Node Right = right;
 
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        int l_val = (int)((Left.Evaluate(scope) as PwPrimitive).GetData());
-        int r_val = (int)((Right.Evaluate(scope) as PwPrimitive).GetData());
-        Parser.Log($"Divide: {this}");
-        return new PwPrimitive($"eval_{l_val} / {r_val}", l_val / r_val, scope); 
+        PwInstance l_val = Left.Evaluate(scope);
+        PwInstance r_val = Right.Evaluate(scope);
+        return l_val.GetMethod("__div__").Invoke(l_val, r_val);
     }
 
     public override string ToPrettyString(int level)

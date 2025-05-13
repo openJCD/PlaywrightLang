@@ -1,16 +1,24 @@
-﻿using PlaywrightLang.LanguageServices.Parse;
+﻿using System.Formats.Asn1;
+using PlaywrightLang.LanguageServices.Object;
+using PlaywrightLang.LanguageServices.Object.Primitive;
+using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.LanguageServices.AST;
+
+public interface IAtomNode
+{ 
+    public PwObjectClass AsPwObject(ScopedSymbolTable scope);
+}
+
 public class Name(string identifier) : Node, IQualifiedIdentifier
 {
-    public readonly string Identifier = identifier;
+    public string Value { get; set; } = identifier;
 
-    // change this to access some kind of stack!
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        Parser.Log($"Found Name: {Identifier}");
+        Parser.Log($"Found Name: {Value}");
 
-        return scope.Lookup(Identifier);
+        return scope.Lookup(Value);
     }
 
     public void Set(object value)
@@ -18,15 +26,16 @@ public class Name(string identifier) : Node, IQualifiedIdentifier
         throw new System.NotImplementedException();
     }
 
-    public override string ToPrettyString(int level) => AddSpaces(level, $"name: '{Identifier}'");
+    public override string ToPrettyString(int level) => AddSpaces(level, $"name: '{Value}'");
 }
-public class Integer(int value) : Node
+public class Integer(int value) : Node, IAtomNode
 {
     public int Value { get; private set; } = value;
 
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope) => new PwCsharpInstance(new PwNumeric(Value));
+    public PwObjectClass AsPwObject(ScopedSymbolTable scope)
     {
-        return new PwPrimitive("new_int", Value, scope);
+        return new PwNumeric(Value);
     }
 
     public override string ToPrettyString(int level)
@@ -36,19 +45,17 @@ public class Integer(int value) : Node
 }
 public class StringLit(string value) : Node
 {
-    public readonly string Value = value;
+    readonly string Value = value;
 
-    public override object Evaluate(ScopedSymbolTable scope) => new PwPrimitive("new_string", Value, scope);
+    public override PwInstance Evaluate(ScopedSymbolTable scope) => new PwCsharpInstance(new PwString(Value));
 
     public override string ToPrettyString(int level) => AddSpaces(level, $"string: \"{Value}\"");
 }
 
 public class FloatLit(float value) : Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
-    {
-        return value;
-    }
+    float Value = value;
+    public override PwInstance Evaluate(ScopedSymbolTable scope) => new PwCsharpInstance(new PwNumeric(Value));
 
     public override string ToPrettyString(int level)
     {
@@ -59,10 +66,8 @@ public class FloatLit(float value) : Node
 
 public class BooleanLit(bool isTrue) : Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
-    {
-        return isTrue;
-    }
+    bool Value => isTrue;
+    public override PwInstance Evaluate(ScopedSymbolTable scope) => new PwCsharpInstance(new PwBoolean(Value));
 
     public override string ToPrettyString(int level) => AddSpaces(level, $"bool: {(isTrue ? "true" : "false")}");
 }

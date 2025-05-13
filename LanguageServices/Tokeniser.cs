@@ -16,6 +16,7 @@ public class Tokeniser
     private int _currentLine = 1;
     private int _currentColumn = 1;
     private int _readerIndex;
+    public string Log = "";
     private char _currentCharacter => _codeChars[_readerIndex];
     public Tokeniser(string data)
     {
@@ -211,7 +212,7 @@ public class Tokeniser
                     case "define":
                         tokens.Add(new Token(TokenType.Define, _currentLine, _currentColumn));
                         break;
-                    case "function":
+                    case "func":
                         tokens.Add(new Token(TokenType.Func, _currentLine, _currentColumn));
                         break;
                     case "for":
@@ -258,6 +259,9 @@ public class Tokeniser
                         break;
                     case "equals":
                         tokens.Add(new Token(TokenType.EqualTo, _currentLine, _currentColumn));
+                        break;
+                    case "enter":
+                        tokens.Add(new Token(TokenType.Enter, _currentLine, _currentColumn));
                         break;
                     default:
                         tokens.Add(new Token(TokenType.Name, _currentLine, _currentColumn, _bufCurrent));
@@ -350,8 +354,9 @@ public class Tokeniser
 
     public Exception Error(string err)
     {
-        Console.Write("Playrwight Lexer [ERROR]:");
-        Console.WriteLine(err);
+        string msg = $"Playrwight Lexer [ERROR]: {err}";
+        Log += msg + '\n';
+        Console.WriteLine(msg);
         return new Exception(err);
     }
 }
@@ -393,19 +398,20 @@ public enum TokenType
     DivAssign,
     AddAssign,
     SubAssign,
-    EqualTo,
-    NotEqual,
-    MoreThan,
-    LessThan,
-    MoreThanEq,
-    LessThanEq,
+    EqualTo,    // ==
+    NotEqual,   // != 
+    MoreThan,   // > | more than
+    LessThan,   // < | less than
+    MoreThanEq, // >=
+    LessThanEq, // <=
     If,
-    LogicalOr,
-    LogicalAnd,
-    FloatLiteral,
+    LogicalOr,  // or | ||
+    LogicalAnd, // and | &&
+    FloatLiteral, // n.n ...
     Else,
     Then,
-    Do
+    Do,
+    Enter // enter
 }
 
 public struct Token

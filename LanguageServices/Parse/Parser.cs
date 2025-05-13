@@ -9,6 +9,9 @@ public class Parser
 {
     private List<Token> _tokenStream;
     private int _index;
+    public static string TextLog = "";
+    
+    private bool _hadError = false;
     private Token CurrentToken => _tokenStream[_index];
     public Parser(List<Token> tokens)
     {
@@ -24,6 +27,9 @@ public class Parser
         {
             nodes.Add(ParseBlock());
         }
+
+        if (_hadError) throw new ParseException("Could not continue: errors occurred while parsing.");
+        
         return new Chunk(nodes.ToArray());
     }
 
@@ -37,13 +43,10 @@ public class Parser
                 //TODO: Parse various block types
                 switch (CurrentToken.Type)
                 {
-                    case TokenType.CastBlock:
-                        block = ParseCastBlock();
-                        Expect("Expected 'end'.", TokenType.EndBlock);
-                        break;
                     case TokenType.SceneBlock:
                         block = ParseSceneBlock();
                         break;
+                    // keeping as a switch in case of future block addition (which is unlikely)
                 }
             }
             else
@@ -75,28 +78,6 @@ public class Parser
         CompoundStmt cstmt = ParseCompoundStmt();
         return new SceneBlock(id, cstmt);
     }
-
-    public Block ParseCastBlock()
-    {
-        Consume();
-        Expect("Expected ':' after 'cast'.", TokenType.Colon);
-        List<Statement> nodes = new();
-        while (CurrentToken.Type != TokenType.EndBlock)
-        {
-            nodes.Add(ParseActorAssignment());
-            Expect("Expected ';' after actor assignment.", TokenType.Semicolon);
-        }
-        CompoundStmt cstmt = new CompoundStmt(nodes.ToArray());
-        return new Block("cast", cstmt);
-    }
-    
-    public Statement ParseActorAssignment()
-    {
-        string left = Expect("Expected name as lvalue for actor assignment.", TokenType.Name).Value;
-        Expect("Expected 'as' inside actor assignment.", TokenType.As);
-        string type = Expect("Expected name as type for actor assignment.", TokenType.Name).Value;
-        return new Statement(new ActorAssignment(left, type));
-    }
     #endregion
     
     #region Statements
@@ -119,6 +100,10 @@ public class Parser
                 break;
             case TokenType.Func:
                 expr = ParseFunctionBlock();
+                break;
+            case TokenType.Enter:
+                expr = ParseInstantiation();
+                Expect("Expected ';' after instantiation.", TokenType.Semicolon);
                 break;
             default:
                 expr = ParseExpression();
@@ -230,6 +215,7 @@ public class Parser
             new Name(Expect("Expected name or single assignment for declaration parameter.", TokenType.Name).Value);
         if (CurrentToken.Type == TokenType.Assignment)
         {
+            Consume();
             param = new DeclarationParameter(identifier, ParseAtom());
         }
         else
@@ -237,16 +223,23 @@ public class Parser
 
         return param;
     }
-    
+
+    public Instantiation ParseInstantiation()
+    {
+        Consume(); // consume 'enter' token
+        string name = Expect("Expected instance name.", TokenType.Name).Value;
+        Expect("Expected 'as' to separate instance name and type.", TokenType.As);
+        Name typeName = new Name(Expect("Expected type name.", TokenType.Name).Value);
+        ParamExpressions args = ParseParameterExprs() as ParamExpressions;
+        return new Instantiation(name, typeName, args);
+    }
     #endregion
     
     #region Expressions
     public Expression ParseExpression()
     {
-        //TODO: Implement expression parsing LOYAL TO THE GRAMMAR!!
         return new Expression(ParseAssignmentExpression());
     }
-
     public Node ParseAssignmentExpression()
     {
         Node lvalue = ParseLogicalOr();
@@ -439,11 +432,11 @@ public class Parser
         return t.Type switch
         {
             TokenType.StringLiteral => new StringLit(t.Value),
-            TokenType.IntLiteral => new Integer(int.Parse(t.Value)),
-            TokenType.FloatLiteral => new FloatLit(float.Parse(t.Value)),
-            TokenType.BoolTrue => new BooleanLit(true),
-            TokenType.BoolFalse => new BooleanLit(false),
-            TokenType.Name => new Name(t.Value),
+            TokenType.IntLiteral    => new Integer(int.Parse(t.Value)),
+            TokenType.FloatLiteral  => new FloatLit(float.Parse(t.Value)),
+            TokenType.BoolTrue      => new BooleanLit(true),
+            TokenType.BoolFalse     => new BooleanLit(false),
+            TokenType.Name          => new Name(t.Value),
             _ => throw Error(t, "Something went wrong - have you forgotten a semicolon?")
         };
     }
@@ -511,12 +504,14 @@ public class Parser
     
     private ParseException Error(Token token, string message)
     {
-        Console.Error.WriteLine($"Playwright parse error at {token.Line}:{token.Column}, {token.Type.ToString()}: \r\n ---> {message}\r\n");
+        string err = $"at {token.Line}:{token.Column}, {token.Type.ToString()}: \r\n ---> {message}\r\n";
+        Log(err, "ERROR");
+        _hadError = true;
         return new ParseException(message);
     }
     public static void Log(string message, string tag = "INFO")
     {
-        Console.Write($"• Playwright Parser ");
+        string new_message = $"\r\n> Playwright Parser ";
         if (tag == "ERROR")
             Console.ForegroundColor = ConsoleColor.Red;
         else if (tag == "WARNING")
@@ -524,11 +519,14 @@ public class Parser
         else if (tag == "INFO")
             Console.ForegroundColor = ConsoleColor.Blue;
         
-        Console.Write($"[{tag}]: ");
+        new_message+=($"[{tag}]: {message}");
         
         Console.ForegroundColor = ConsoleColor.White;
-        Console.WriteLine(message);
+        TextLog += new_message;
+        Console.WriteLine(new_message);
     }
+
+    public static string GetLog() => TextLog;
 }
 
 public class ParseException : Exception

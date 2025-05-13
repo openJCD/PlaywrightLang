@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using PlaywrightLang.LanguageServices.Object;
 using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.LanguageServices.AST;
@@ -17,7 +18,7 @@ public interface IQualifiedIdentifier
 
 public abstract class Node
 {
-    public abstract object Evaluate(ScopedSymbolTable scope);
+    public abstract PwInstance Evaluate(ScopedSymbolTable scope);
     protected int Level = 0;
     
     public abstract string ToPrettyString(int level);
@@ -39,7 +40,7 @@ public abstract class Node
 }
 public class Block(string blockType, CompoundStmt stmt) : Node
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         stmt.Evaluate(scope);
         return null;
@@ -56,7 +57,7 @@ public class Block(string blockType, CompoundStmt stmt) : Node
 
 public class SceneBlock(string id, CompoundStmt stmt) : Block("scene", stmt)
 {
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         throw new NotImplementedException();
     }
@@ -70,7 +71,7 @@ public class Chunk : Node
         _nodes.AddRange(nodes);
     }
 
-    public override object Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         foreach (Node _nd in _nodes)
         {
