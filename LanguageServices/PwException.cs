@@ -3,7 +3,7 @@ namespace PlaywrightLang.LanguageServices;
 
 public class PwException : Exception 
 {
-    public override string Message => $"Fatal Playwright error {error}";
+    public override string Message => $"Fatal Playwright Error: {error}";
     protected string error = "";
     public PwException() { }
 

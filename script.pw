@@ -1,14 +1,6 @@
-﻿glossary:
-    calculation_1 means 2 * -2 + 7 - (10 / 2) 
-    calculation_2 means (5 * 5 * 5) / (-10 / -2) 
-    info_1 means "This is the Playwright Pre-Pre-Pre-Alpha. "
-end
-cast:
-    ronnie as actor
-end
-Define function hello_world for actor ():
-    exeunt
-end
-Define function good_morning(arg, arg1): 
-    exeunt with (arg + arg1)
+﻿enter ronnie as actor;
+
+# test function with a lot of parameters:
+func hello(param1 = "hello, ", param2 = "world!", param3 = " :)"):
+    ronnie: says(param1, param2, param3);
 end

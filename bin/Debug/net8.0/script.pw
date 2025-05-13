@@ -1,14 +1,25 @@
-﻿glossary:
-    calculation_1 means 2 * -2 + 7 - (10 / 2) 
-    calculation_2 means (5 * 5 * 5) / (-10 / -2) 
-    info_1 means "This is the Playwright Pre-Pre-Pre-Alpha. "
-end
+﻿
+calculation_1 means 2 * -2 + 7 - (10 / 2); 
+calculation_2 means (5 * 5 * 5) / (-10 / -2); 
+info_1 means "This is the Playwright Pre-Alpha.";
+info_2 means 3 < 4;
+
 cast:
-    ronnie as actor
+    ronnie as actor;
+    james as tree;
 end
-Define function hello_world for actor ():
 
+# function that returns the sum of two params and is defined for all actors.
+function add (left, right):
+    exeunt with (left + right);
 end
-Define function good_morning(arg, arg1): 
 
+function says_hi for actor ():
+    self: says("hi!");
+end
+
+scene intro:
+    ronnie: says("string": method().attribute: method1());
+    ronnie: says_hi();
+    ronnie: add(1, 5);
 end

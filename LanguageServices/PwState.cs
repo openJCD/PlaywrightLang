@@ -1,37 +1,53 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
+using System.Formats.Asn1;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
+using System.Transactions;
+using System.Xml.Schema;
+using PlaywrightLang.LanguageServices.AST;
+using PlaywrightLang.LanguageServices.Object;
+using PlaywrightLang.LanguageServices.Object.Primitive;
+using PlaywrightLang.LanguageServices.Object.Types;
+using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.LanguageServices;
 
 public class PwState
 {
-    private Tokeniser tokeniser;
-    private Parser parser;
-    private Dictionary<string, PwObject> Globals = new();
-    private Dictionary<string, List<PwObject>> ScopeTable = new();
-    private string _currentScope = "global"; 
+    public static void Log(string message)
+    {
+        Console.WriteLine("- Playwright State: " + message);
+    }
+    
+    private string _currentScopeName = "global"; 
     private int _currentScopeIndex = 0;
-    private Dictionary<string, PwActor> Cast = new();
-    private Dictionary<string, Type> ValidActorTypes = new();
-    private ScopedSymbolTable Scope = new("global", 0, null);
+    public Tokeniser Tokeniser { get; private set; }
+    private Parser parser;
+    private ScopedSymbolTable CurrentScope = new("global", 0, null);
+    
     public PwState()
     {
-        ValidActorTypes.Add("actor", typeof(PwActor));
-        ScopeTable.Add("global", []);
+        RegisterType<PwActor>("actor");
+        RegisterType<PwNumeric>("float");
+        RegisterType<PwString>("string");
+        RegisterType<PwObjectClass>("object");
+        RegisterType<PwFunction>("function");
+        // testing instantiation
+        CreateInstanceOfTypeName("actor", "ronnie", "ronnie");
     }
 
-    List<Token> LoadFile(string path)
+    public List<Token> LoadFile(string path)
     {
         Stream s = File.OpenRead(path);
         StreamReader sr = new StreamReader(s);
-        tokeniser = new Tokeniser(sr.ReadToEnd());
+        Tokeniser = new Tokeniser(sr.ReadToEnd());
         Console.WriteLine($"Playwright Lexer: File {path} -> Tokens: ");
-        List<Token> tokens = tokeniser.Tokenise();
+        List<Token> tokens = Tokeniser.Tokenise();
         int count = 0;
         tokens.ForEach(t =>
         {
@@ -43,9 +59,9 @@ public class PwState
 
     List<Token> LoadString(string s)
     {
-        tokeniser = new Tokeniser(s);
+        Tokeniser = new Tokeniser(s);
         Console.WriteLine("• Playwright Lexer: String Input -> Tokens: ");
-        List<Token> tokens = tokeniser.Tokenise();
+        List<Token> tokens = Tokeniser.Tokenise();
         int count = 0;
         tokens.ForEach(t =>
         {
@@ -56,85 +72,69 @@ public class PwState
     }
     
     public void ParseString(string input)
-    {
-        parser = new Parser(LoadString(input), this);
-        parser.ParseChunk();
+    { 
+        Node tree = parser.Parse();
+        Console.Write(tree.ToPrettyString(0));
     }
 
     public void ParseFile(string filepath)
     {
-        parser = new Parser(LoadFile(filepath), this);
+        parser = new Parser(LoadFile(filepath));
         Stopwatch timer = Stopwatch.StartNew();
-        Node tree = parser.ParseChunk();
-        Parser.Log($"Done in {timer.ElapsedMilliseconds}ms");
+        Node tree = parser.Parse();
         timer.Stop();
-        Parser.Log(new Interpreter(tree).Execute());
+        Parser.Log($"Done in {timer.ElapsedMilliseconds}ms");
+        Parser.Log(tree.ToPrettyString(0) ?? string.Empty);
     }
 
-    public void RegisterActorType<T>(string identifier)
+    public object ExecuteChunk(Node node)
     {
-        ValidActorTypes[identifier] = typeof(T);
+        return node.Evaluate(CurrentScope);
     }
 
-    internal void SetVariable(string name, PwObject value)
+    public void RegisterType<T>(string typeName) where T : PwObjectClass
     {
-        Globals[name] = value;
-    }
-
-    internal object GetVariable(string name)
-    {
-        return Scope.Lookup(name);
-    }
-    internal void SetActor(string name, string actorType)
-    {
-        if (!ValidActorTypes.ContainsKey(actorType))
-        {
-            throw new PwTypeException(actorType, "Type does not exist. Have you tried registering it with RegisterActorType<T>()?");
-        }
-        else
-        {
-            Cast[actorType] = new PwActor(name, this);
-        }
-    }
-
-    internal PwActor GetActor(string name)
-    {
-        try
-        {
-            return Cast[name];
-        }
-        catch (Exception e)
-        {
-            throw new PwException($"Could not find actor {name}", e);
-        }
-    }
-
-    internal PwFunction GetGlobalFunction(string name)
-    {
-        return Globals[name] as PwFunction;
+        CurrentScope.AddSymbol(typeName, new PwCsharpInstance(new PwType<T>(typeName)));
     }
     
     internal void EnterNestedScope(string scopeName)
     {
-        _currentScope = scopeName;
+        _currentScopeName = scopeName;
+        ScopedSymbolTable newScope = new ScopedSymbolTable(scopeName, _currentScopeIndex+1, CurrentScope);
+        CurrentScope = newScope;
         _currentScopeIndex++;
-        ScopeTable.Add(_currentScope, []);
     }
-
-    internal void ExecuteScopedInstructions(Node instructions, Node[] args)
+    
+    internal object InvokeFunction(string funcName, params PwInstance[] args)
     {
-        // TODO:  
+        EnterNestedScope(funcName);
+        PwCallableInstance func = CurrentScope.Lookup(funcName) as PwCallableInstance;
+        if (func == null) throw new PwException($"Could not find function {funcName} in scope {CurrentScope.Name}");
+        object value = func.Invoke(args);
+        MoveOutOfCurrentScope();
+        return value;
     }
-
-    internal object InvokeFunction(PwFunction func, params object[] args)
-    {
-        return func.Invoke(Scope, args);
-    }
-
     internal void MoveOutOfCurrentScope()
     {
         _currentScopeIndex -= 1;
-        ScopeTable.Remove(_currentScope);
-        _currentScope = ScopeTable.Keys.ElementAt(_currentScopeIndex);
+        if (CurrentScope.Name != "global")
+        {
+            CurrentScope = CurrentScope.Parent;
+        }
+        _currentScopeName = CurrentScope.Name;
     }
+
+    private PwInstance CreateInstanceOfTypeName(string typeName, string id, params object[] args)
+    {
+        PwInstance[] pwArgs = new PwInstance[args.Length];
+        for (int i = 0; i < args.Length; i++)
+        {
+            pwArgs[i] = args[i].AsPwInstance();
+        }
+        PwCallableInstance method =  CurrentScope.Lookup(typeName).GetMethod("__new__");
+        PwInstance inst = method.Invoke(pwArgs);
+        CurrentScope.AddSymbol(id, inst);
+        return inst;
+    }
+    
 }

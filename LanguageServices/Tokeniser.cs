@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices.JavaScript;
 using System.Security.Principal;
-
 namespace PlaywrightLang.LanguageServices;
 
 public class Tokeniser
@@ -16,7 +16,8 @@ public class Tokeniser
     private int _currentLine = 1;
     private int _currentColumn = 1;
     private int _readerIndex;
-    
+    public string Log = "";
+    private char _currentCharacter => _codeChars[_readerIndex];
     public Tokeniser(string data)
     {
         _codeRaw = data;
@@ -33,21 +34,44 @@ public class Tokeniser
             switch (ch_consumed)
             {
                 case '\n' :
-                    tokens.Add(new Token(TokenType.Newline, _currentLine, _currentColumn));
                     _currentLine++;
                     _currentColumn = 0;
                     break;
                 case '+':
-                    tokens.Add(new Token(TokenType.Plus, _currentLine, _currentColumn));
+                    if (Peek() == '=')
+                    {
+                        tokens.Add(new Token(TokenType.AddAssign, _currentLine, _currentColumn));
+                        Consume();
+                    }
+                    else
+                        tokens.Add(new Token(TokenType.Plus, _currentLine, _currentColumn));
                     break;
                 case '-':
-                    tokens.Add(new Token(TokenType.Minus, _currentLine, _currentColumn));
+                    if (Peek() == '=')
+                    {
+                        tokens.Add(new Token(TokenType.SubAssign, _currentLine, _currentColumn));
+                        Consume();
+                    }
+                    else
+                        tokens.Add(new Token(TokenType.Minus, _currentLine, _currentColumn));
                     break;
                 case '*':
-                    tokens.Add(new Token(TokenType.Multiply, _currentLine, _currentColumn));
+                    if (Peek() == '=')
+                    {
+                        tokens.Add(new Token(TokenType.MultAssign, _currentLine, _currentColumn));
+                        Consume();
+                    }
+                    else
+                        tokens.Add(new Token(TokenType.Multiply, _currentLine, _currentColumn));
                     break;
                 case '/':
-                    tokens.Add(new Token(TokenType.Divide, _currentLine, _currentColumn));
+                    if (Peek() == '=')
+                    {
+                        tokens.Add(new Token(TokenType.DivAssign, _currentLine, _currentColumn));
+                        Consume();
+                    }
+                    else
+                        tokens.Add(new Token(TokenType.Divide, _currentLine, _currentColumn));
                     break;
                 case ':':
                     tokens.Add(new Token(TokenType.Colon, _currentLine, _currentColumn));
@@ -62,13 +86,72 @@ public class Tokeniser
                     tokens.Add(new Token(TokenType.Dot, _currentLine, _currentColumn));
                     break;
                 case '#':
-                    while (Peek() != '\n' && Peek() != '\0')
-                    { Consume(); }
+                    while (Peek() != '\n' && Peek() != '\0') { Consume(); }
                     break;
                 case ',':
                     tokens.Add(new Token(TokenType.Comma, _currentLine, _currentColumn));
                     break;
-                default: break;
+                case ';':
+                    tokens.Add(new Token(TokenType.Semicolon, _currentLine, _currentColumn));
+                    break;
+                case '=':
+                    if (Peek() == '=')
+                    {
+                        tokens.Add(new Token(TokenType.EqualTo, _currentLine, _currentColumn));
+                        Consume();
+                    }
+                    else
+                        tokens.Add(new Token(TokenType.Assignment, _currentLine, _currentColumn));
+                    break;          
+                case '<':
+                    if (Peek() == '=')
+                    {
+                        tokens.Add(new Token(TokenType.MoreThanEq, _currentLine, _currentColumn));
+                        Consume();
+                    }
+                    else
+                        tokens.Add(new Token(TokenType.LessThan, _currentLine, _currentColumn));
+                    break;
+                case '>':
+                    if (Peek() == '=')
+                    {
+                        tokens.Add(new Token(TokenType.LessThanEq, _currentLine, _currentColumn));
+                        Consume();
+                    }
+                    else
+                        tokens.Add(new Token(TokenType.MoreThan, _currentLine, _currentColumn));
+                    break;
+                case '!':
+                    if (Peek() == '=')
+                    {
+                        tokens.Add(new Token(TokenType.NotEqual, _currentLine, _currentColumn));
+                        Consume();
+                    }
+                    else
+                        tokens.Add(new Token(TokenType.Not, _currentLine, _currentColumn));
+                    break;
+                case '|':
+                    if (Peek() == '|')
+                    {
+                        tokens.Add(new Token(TokenType.LogicalOr, _currentLine, _currentColumn));
+                        Consume();
+                    }
+                    else
+                        throw Error("Incomplete 'logical or' token: '|' should be finished with another '|'.");
+                    
+                    break;
+                case '&':
+                    if (Peek() == '&')
+                    {
+                        tokens.Add(new Token(TokenType.LogicalAnd, _currentLine, _currentColumn));
+                        Consume();
+                    }
+                    else
+                        throw Error("Incomplete 'logical and' token: '&' should be finished with another '&'.");
+
+                    break;
+                default:
+                    break;
             }
             // handle string literals
             if (ch_consumed == '"')
@@ -102,7 +185,7 @@ public class Tokeniser
                 while (char.IsLetterOrDigit(Peek()) || Peek() == '_')
                     _bufCurrent += Consume();
 
-                switch (_bufCurrent.ToLower())
+                switch (_bufCurrent.ToLower()) 
                 {
                     case "fin":
                         tokens.Add(new Token(TokenType.Exit, _currentLine, _currentColumn));
@@ -113,9 +196,6 @@ public class Tokeniser
                     // equivalent to '=' in other languages
                     case "means": 
                         tokens.Add(new Token(TokenType.Assignment, _currentLine, _currentColumn));
-                        break;
-                    case "glossary":
-                        tokens.Add(new Token(TokenType.GlossaryBlock, _currentLine, _currentColumn));
                         break;
                     case "cast":
                         tokens.Add(new Token(TokenType.CastBlock, _currentLine, _currentColumn));
@@ -132,7 +212,7 @@ public class Tokeniser
                     case "define":
                         tokens.Add(new Token(TokenType.Define, _currentLine, _currentColumn));
                         break;
-                    case "function":
+                    case "func":
                         tokens.Add(new Token(TokenType.Func, _currentLine, _currentColumn));
                         break;
                     case "for":
@@ -147,6 +227,42 @@ public class Tokeniser
                     case "with":
                         tokens.Add(new Token(TokenType.With, _currentLine, _currentColumn));
                         break;
+                    case "true":
+                        tokens.Add(new Token(TokenType.BoolTrue, _currentLine, _currentColumn));
+                        break;
+                    case "false":
+                        tokens.Add(new Token(TokenType.BoolFalse, _currentLine, _currentColumn));
+                        break;
+                    case "more":
+                        tokens.Add(FinishToken("more", "than", TokenType.MoreThan));
+                        break;
+                    case "less":
+                        tokens.Add(FinishToken("less", "than", TokenType.LessThan));
+                        break;
+                    case "if":
+                        tokens.Add(new Token(TokenType.If, _currentLine, _currentColumn));
+                        break;
+                    case "then":
+                        tokens.Add(new Token(TokenType.Then, _currentLine, _currentColumn));
+                        break;
+                    case "do":
+                        tokens.Add(new Token(TokenType.Do, _currentLine, _currentColumn));
+                        break;
+                    case "or":
+                        tokens.Add(new Token(TokenType.LogicalOr, _currentLine, _currentColumn));
+                        break;
+                    case "and":
+                        tokens.Add(new Token(TokenType.LogicalAnd, _currentLine, _currentColumn));
+                        break;
+                    case "else":
+                        tokens.Add(new Token(TokenType.Else, _currentLine, _currentColumn));
+                        break;
+                    case "equals":
+                        tokens.Add(new Token(TokenType.EqualTo, _currentLine, _currentColumn));
+                        break;
+                    case "enter":
+                        tokens.Add(new Token(TokenType.Enter, _currentLine, _currentColumn));
+                        break;
                     default:
                         tokens.Add(new Token(TokenType.Name, _currentLine, _currentColumn, _bufCurrent));
                         break;
@@ -160,17 +276,68 @@ public class Tokeniser
             { 
                 _bufCurrent = "";
                 _bufCurrent += ch_consumed;
-                while (char.IsDigit(Peek()))
+                while (char.IsDigit(Peek()) || Peek() == '.') 
                 {
-                    _bufCurrent += Consume();
+                    if (Peek() == '.')
+                    {
+                        if (char.IsNumber(Peek(1)))
+                        {
+                            _bufCurrent += Consume();
+                        }
+                        else
+                            break;
+                    }
+                    else
+                    {
+                        _bufCurrent += Consume();
+                    }
                 }
-                tokens.Add(new Token(TokenType.IntLiteral, _currentLine, _currentColumn, _bufCurrent));
+
+                if (_bufCurrent.Contains(".") && _bufCurrent.Split(".").Length == 2)
+                    tokens.Add(new Token(TokenType.FloatLiteral, _currentLine, _currentColumn, _bufCurrent));
+                else
+                    tokens.Add(new Token(TokenType.IntLiteral, _currentLine, _currentColumn, _bufCurrent));
                 _bufCurrent = "";
             }
         }
         return tokens;
     }
-    
+
+    /// <summary>
+    /// Finishes the current two-word token, such as more than, less than...
+    /// </summary>
+    /// <param name="expected_word">The expected second word of the token</param>
+    /// <returns>The finished token, or null if the word was invalid.</returns>
+    public Token FinishToken(string first_word, string expected_word, TokenType final_type)
+    {
+        int initial_seek_position = _readerIndex;
+        int initial_column = _currentColumn;
+        while (!char.IsLetter(Peek()))
+        {
+            Consume(); //consume the current space or other character
+        }
+        string _wordBuffer = "";
+        while (Peek() != ' ')
+        {
+            _wordBuffer += Consume();
+        }
+        while (Peek() == ' ')
+        {
+            Consume(); //consume the trailing spaces
+        }
+        if (_wordBuffer == expected_word)
+        {
+            return new Token(final_type, _currentLine, _currentColumn);
+        }
+        else
+        {
+            _currentColumn = initial_column;
+            _readerIndex = initial_seek_position;
+            throw Error($"Expected {expected_word} after {first_word} for {final_type.ToString()} at {_currentLine}:{_currentColumn}");
+        }
+
+        return Token.None;
+    }
     char Peek(int ahead = 0)
     {
         if (_readerIndex + ahead >= _codeChars.Length)
@@ -184,30 +351,37 @@ public class Tokeniser
         _currentColumn++;
         return c;
     }
+
+    public Exception Error(string err)
+    {
+        string msg = $"Playrwight Lexer [ERROR]: {err}";
+        Log += msg + '\n';
+        Console.WriteLine(msg);
+        return new Exception(err);
+    }
 }
 
 public enum TokenType
 {
-    Null, // used to signify the end of a list of tokens (EOF)
+    EOF, // used to signify the end of a list of tokens (EOF)
     Exit, // fin
     StringLiteral, // "<string of characters>"
-    IntLiteral, // <any string of numbers with no decimal>
-    Newline, // \n
+    IntLiteral, // \n
     Plus, // +
     Minus, // -
     Multiply,// *
     Divide, // /
-    Exponent, // ^
+    Exponent, // ^ TODO
     Name, // <user-defined token name>
     SceneBlock, // scene
-    GlossaryBlock, // glossary 
     CastBlock, // cast
     SequenceBlock, // sequence (equivalent to function)
     Colon, // :
+    Semicolon, // ; 
     Assignment, // means
     LParen, // (
     RParen, // )
-    Dot,// .
+    Dot,    // .
     EndBlock, // end
     As, // as -> (used in the cast block to denote a type of actor, for example 'tree as prop')
     Define,
@@ -217,6 +391,27 @@ public enum TokenType
     Comma, 
     Return, // exeunt 
     With, // used in return statements: "exeunt with <expr>"
+    BoolTrue,
+    BoolFalse,
+    Not, // 'not' | '!'
+    MultAssign,
+    DivAssign,
+    AddAssign,
+    SubAssign,
+    EqualTo,    // ==
+    NotEqual,   // != 
+    MoreThan,   // > | more than
+    LessThan,   // < | less than
+    MoreThanEq, // >=
+    LessThanEq, // <=
+    If,
+    LogicalOr,  // or | ||
+    LogicalAnd, // and | &&
+    FloatLiteral, // n.n ...
+    Else,
+    Then,
+    Do,
+    Enter // enter
 }
 
 public struct Token
@@ -238,5 +433,5 @@ public struct Token
         Value = value;
     }
     public override string ToString() => $"{Type}: {Value}";
-    public static Token None => new Token(TokenType.Null, 0, 0);
+    public static Token None => new Token(TokenType.EOF, 0, 0);
 }
