@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Reflection;
+﻿using System.Reflection;
 using PlaywrightLang.LanguageServices.Object.Primitive;
 
 namespace PlaywrightLang.LanguageServices.Object;
@@ -13,6 +12,10 @@ public class PwCsharpCallable(MethodInfo m, PwObjectClass methodOwner) : PwCalla
         object[] obj_args = new object[args.Length];
         for (int i = 0; i < args.Length; i++)
         {
+            if (args[i] == null)
+            {
+                continue; //TODO: introduce null type for this situation
+            }
             obj_args[i] = args[i].GetUnderlyingObject();
         }
         object result = Method.Invoke(target, [obj_args]);

@@ -9,4 +9,17 @@ public class PwNumeric (float val) : PwObjectClass
     {
         return Value;
     }
+    
+    [PwItem("__true__")]
+    public override PwInstance PwTrue (PwInstance self)
+    {
+        if (Value > 0 || Value < 0)
+        {
+            return new PwCsharpInstance(new PwBoolean(true));
+        }
+        else
+        {
+            return new PwCsharpInstance(new PwBoolean(false));
+        }
+    }
 }

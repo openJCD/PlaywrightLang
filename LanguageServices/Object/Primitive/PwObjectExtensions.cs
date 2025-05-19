@@ -29,6 +29,7 @@ public static class PwObjectExtensions
             
             if (value is PwCsharpInstance v)
                 return v;
+            
             throw new PwException("Object could not be converted to valid Playwright type. " +
                                   "You might want this class to inherit from PwObjectClass.");
     }

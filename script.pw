@@ -1,4 +1,4 @@
-﻿enter ronnie as actor;
+﻿enter ronnie as actor("ronnie");
 
 # test function with a lot of parameters:
 func hello(param1 = "hello, ", param2 = "world!", param3 = " :)"):

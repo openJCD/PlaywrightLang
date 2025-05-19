@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using PlaywrightLang.LanguageServices;
+using PlaywrightLang.LanguageServices.AST;
 using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.DebugEntry;
@@ -59,6 +60,7 @@ internal class Game1 : Game
 
     private string testFileName = "";
     List<Token> currentTokens = new List<Token>();
+    Node currentNode = new VoidNode();
     protected void DebugGui()
     {
         ImGui.Begin("Playwright Sandbox");
@@ -81,12 +83,18 @@ internal class Game1 : Game
         {
             try
             {
-                state.ParseFile(testFileName);
+                currentNode = state.ParseFile(testFileName);
             }
             catch (Exception e)
             {
                 Parser.Log($"Could not parse the file {testFileName}: {e.Message}");
             }
+        }
+
+        if (ImGui.Button("Run Program"))
+        { 
+            state.ExecuteChunk(currentNode);
+            PwState.Log("Finished running program.");
         }
         ImGui.End();
 

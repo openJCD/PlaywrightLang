@@ -230,7 +230,9 @@ public class Parser
         string name = Expect("Expected instance name.", TokenType.Name).Value;
         Expect("Expected 'as' to separate instance name and type.", TokenType.As);
         Name typeName = new Name(Expect("Expected type name.", TokenType.Name).Value);
+        Expect("Expected '(' to begin constructor arguments.", TokenType.LParen);
         ParamExpressions args = ParseParameterExprs() as ParamExpressions;
+        Expect("Expected ')' to end constructor arguments.", TokenType.RParen);
         return new Instantiation(name, typeName, args);
     }
     #endregion
@@ -509,6 +511,7 @@ public class Parser
         _hadError = true;
         return new ParseException(message);
     }
+    
     public static void Log(string message, string tag = "INFO")
     {
         string new_message = $"\r\n> Playwright Parser ";

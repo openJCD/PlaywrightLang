@@ -78,7 +78,7 @@ public class Instantiation(string name, Name typeName, ParamExpressions args) : 
     {
         string s = AddSpaces(level, "instantiation: (\r\n");
         s += AddSpaces(level + 1, $"name: {name},\r\n");
-        s += AddSpaces(level + 1, $"type: {typeName},\r\n");
+        s += AddSpaces(level + 1, $"type: {typeName.Value},\r\n");
         s += args.ToPrettyString(level+1);
         s += AddSpaces(level, ")");
         return s;
@@ -93,7 +93,11 @@ public class FunctionBlock(string id, string owner, ParamNames args, CompoundStm
     private CompoundStmt Body = body;
     public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        throw new NotImplementedException();
+        PwFunction pwFunction = new PwFunction(Args, Body, Owner, scope);
+        PwCallableInstance callableFunction = new PwCallableInstance(pwFunction);
+        scope.AddSymbol(Id, callableFunction);
+        
+        return callableFunction;
     }
 
     public override string ToPrettyString(int level)
@@ -113,7 +117,7 @@ public class IfStmt(Expression conditional, CompoundStmt statements) : Node
         if (conditional.IsTruthy(scope))
         {
             return statements.Evaluate(scope);
-        }
+        } //TODO: Implement Else
         
         return null;
     }
@@ -137,7 +141,7 @@ public class WhileLoop(Expression conditional, CompoundStmt statements) : Node
         while (conditional.IsTruthy(scope))
         {
             statements.Evaluate(scope);
-        }
+        } //TODO: implement continue, break
         return null;
     }
 

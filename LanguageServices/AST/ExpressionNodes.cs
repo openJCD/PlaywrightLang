@@ -18,8 +18,8 @@ public class Expression(Node expr) : Node
 
     public bool IsTruthy(ScopedSymbolTable scope)
     {
-        object result = expr.Evaluate(scope);
-        return result != null || !result.Equals(false) || !result.Equals(0);
+        PwInstance result = expr.Evaluate(scope);
+        return (bool)result.GetMethod("__true__").Invoke().GetUnderlyingObject();
     }
     public override string ToPrettyString(int level)
     {
@@ -36,7 +36,7 @@ public class FunctionCall(Node path, ParamExpressions args) : Node
 {
     public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        throw new NotImplementedException();
+        return (path.Evaluate(scope) as PwCallableInstance).Invoke(args.AsArray(scope));
     }
     public override string ToPrettyString(int level)
     {
@@ -51,9 +51,11 @@ public class FunctionCall(Node path, ParamExpressions args) : Node
 public class ParamExpressions(ParamExpressions previous, Node current) : Node
 {
 
+    ParamExpressions Previous = previous;
+    Node Current = current;
     public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        throw new NotImplementedException();
+        return null;
     }
 
     public PwInstance[] AsArray(ScopedSymbolTable scope)
@@ -67,7 +69,8 @@ public class ParamExpressions(ParamExpressions previous, Node current) : Node
         {
             result = previous.AsArray(scope).ToList();
         }
-        result.Add(current.Evaluate(scope));
+        if (current is not VoidNode)
+            result.Add(current.Evaluate(scope));
         return result.ToArray();
     }
     public override string ToPrettyString(int level)

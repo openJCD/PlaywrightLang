@@ -15,11 +15,13 @@ public class PwObjectClass
     {
         throw new PwException("__add__ is not defined by base PwObjectClass");
     }
+    
     [PwItem("__sub__")]
     public virtual PwInstance PwSub(PwInstance left, PwInstance right)
     {
         throw new PwException("__sub__ is not defined by base PwObjectClass");
     }
+    
     [PwItem("__mult__")]
     public virtual PwInstance PwMult(PwInstance left, PwInstance right)
     {
@@ -35,6 +37,14 @@ public class PwObjectClass
     public virtual PwInstance PwNeg(PwInstance left, PwInstance right)
     {
         throw new PwException("__neg__ is not defined by base PwObjectClass");
+    }
+
+    // Method to determine an object's truthiness.
+    // Must return PwCsharpInstance of type PwBoolean.
+    [PwItem("__true__")]
+    public virtual PwInstance PwTrue(PwInstance self)
+    {
+        return new PwCsharpInstance(new PwBoolean(true));
     }
     public PwObjectClass() {}
 

@@ -21,7 +21,7 @@ public class PwState
 {
     public static void Log(string message)
     {
-        Console.WriteLine("- Playwright State: " + message);
+        Console.WriteLine("> Playwright State: " + message);
     }
     
     private string _currentScopeName = "global"; 
@@ -38,7 +38,7 @@ public class PwState
         RegisterType<PwObjectClass>("object");
         RegisterType<PwFunction>("function");
         // testing instantiation
-        CreateInstanceOfTypeName("actor", "ronnie", "ronnie");
+        // CreateInstanceOfTypeName("actor", "ronnie", "ronnie");
     }
 
     public List<Token> LoadFile(string path)
@@ -77,7 +77,7 @@ public class PwState
         Console.Write(tree.ToPrettyString(0));
     }
 
-    public void ParseFile(string filepath)
+    public Node ParseFile(string filepath)
     {
         parser = new Parser(LoadFile(filepath));
         Stopwatch timer = Stopwatch.StartNew();
@@ -85,6 +85,7 @@ public class PwState
         timer.Stop();
         Parser.Log($"Done in {timer.ElapsedMilliseconds}ms");
         Parser.Log(tree.ToPrettyString(0) ?? string.Empty);
+        return tree;
     }
 
     public object ExecuteChunk(Node node)
@@ -136,5 +137,4 @@ public class PwState
         CurrentScope.AddSymbol(id, inst);
         return inst;
     }
-    
 }
