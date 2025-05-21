@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using PlaywrightLang.LanguageServices.Object.Primitive;
 
@@ -49,7 +50,10 @@ public class PwCsharpInstance : PwInstance
 
     public override PwInstance Get(string memberName)
     {
-        return _csFields[memberName].GetValue(_pwClass).AsPwInstance();
+        if (_csFields.ContainsKey(memberName))
+            return _csFields[memberName].GetValue(_pwClass).AsPwInstance();
+        else 
+            return _members[memberName];
     }
 
     public override object GetUnderlyingObject()

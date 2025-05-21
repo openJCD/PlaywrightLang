@@ -9,6 +9,13 @@ public class PwNumeric (float val) : PwObjectClass
     {
         return Value;
     }
+
+    [PwItem("__add__")]
+    public override PwInstance PwAdd(PwInstance left, PwInstance right)
+    {
+        return ((float)left.GetUnderlyingObject() + (float)right.GetUnderlyingObject()).AsPwInstance();
+    }
+    
     
     [PwItem("__true__")]
     public override PwInstance PwTrue (PwInstance self)

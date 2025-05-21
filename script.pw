@@ -1,6 +1,13 @@
 ﻿enter ronnie as actor("ronnie");
 
 # test function with a lot of parameters:
-func hello(param1 = "hello, ", param2 = "world!", param3 = " :)"):
-    ronnie: says(param1, param2, param3);
+func hello():
+    ronnie: says("hello");
 end
+
+func add_and_say(left, right):
+    ronnie: says(left+right);
+end
+
+hello();
+add_and_say(3, 5);

@@ -27,7 +27,7 @@ public class CompoundStmt(params Statement[] args) : Node
     private Statement[] statements = args;
     public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        foreach (Statement s in args)
+        foreach (Statement s in statements)
         {
             s.Evaluate(scope);
         }

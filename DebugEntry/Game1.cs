@@ -81,9 +81,9 @@ internal class Game1 : Game
 
         if (ImGui.Button("Parse file"))
         {
+            currentNode = state.ParseFile(testFileName);
             try
             {
-                currentNode = state.ParseFile(testFileName);
             }
             catch (Exception e)
             {

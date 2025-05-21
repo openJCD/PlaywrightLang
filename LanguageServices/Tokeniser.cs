@@ -300,6 +300,7 @@ public class Tokeniser
                 _bufCurrent = "";
             }
         }
+        tokens.Add(new Token(TokenType.EOF, _currentLine, _currentColumn));
         return tokens;
     }
 

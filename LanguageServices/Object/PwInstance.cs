@@ -54,4 +54,9 @@ public class PwInstance
     {
         throw new PwException("Cannot get underlying object for builtin Playwright instance, so cannot assign to field of a C# instance.");
     }
+
+    public override string ToString()
+    {
+        return GetUnderlyingObject().ToString();
+    }
 }

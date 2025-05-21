@@ -23,15 +23,16 @@ public class PwFunction : PwCallable
     {
         //TODO: Add args to a new layer of the captured scope. 
         int i = 0;
+        ScopedSymbolTable scope = new ScopedSymbolTable("func", _capturedScope.Level + 1, _capturedScope);
         foreach (var arg in args)
         {
-            _capturedScope.MutateSymbol(_parameters.GetParameters(_capturedScope).Keys.ToArray()[i], arg);
+            var paramDict = _parameters.GetParameters(scope);
+            scope.MutateSymbol(paramDict.Keys.ToArray()[i], arg); // for each argument, add its literal to the 
             i++;
         }
-
         try
         {
-            Instructions.Evaluate(_capturedScope);
+            Instructions.Evaluate(scope);
         }
         catch (PwReturn r)
         {

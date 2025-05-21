@@ -1,4 +1,6 @@
-﻿namespace PlaywrightLang.LanguageServices.Object.Primitive;
+﻿using Microsoft.Xna.Framework.Graphics;
+
+namespace PlaywrightLang.LanguageServices.Object.Primitive;
 
 public static class PwObjectExtensions
 {
@@ -15,6 +17,10 @@ public static class PwObjectExtensions
     /// <exception cref="PwException"></exception>
     public static PwInstance AsPwInstance(this object value)
     {
+            if (value is PwCsharpInstance v)
+                return v;
+            if (value is null)
+                return new PwNullInstance(); // null type
             if (value is bool b)
                 return new PwCsharpInstance(new PwBoolean(b));
             
@@ -27,8 +33,7 @@ public static class PwObjectExtensions
             if (value is PwObjectClass)
                 return new PwCsharpInstance((PwObjectClass)value);
             
-            if (value is PwCsharpInstance v)
-                return v;
+            
             
             throw new PwException("Object could not be converted to valid Playwright type. " +
                                   "You might want this class to inherit from PwObjectClass.");

@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Linq;
+using System.Reflection;
 using PlaywrightLang.LanguageServices.Object.Primitive;
 
 namespace PlaywrightLang.LanguageServices.Object;
@@ -14,11 +16,23 @@ public class PwCsharpCallable(MethodInfo m, PwObjectClass methodOwner) : PwCalla
         {
             if (args[i] == null)
             {
-                continue; //TODO: introduce null type for this situation
+                continue;
             }
             obj_args[i] = args[i].GetUnderlyingObject();
         }
-        object result = Method.Invoke(target, [obj_args]);
+
+        object result;
+        // hack to allow for the PwType __new__ method to work, as it uses `params`, which causes issues with calling
+        // via reflection.
+        if (Method.GetParameters()[0].IsDefined(typeof(ParamArrayAttribute), false))
+        {
+            result = Method.Invoke(target, [obj_args]);
+        }
+        else // just call it with the plain args. works for most non-params methods.
+        {
+            result = Method.Invoke(target, obj_args);
+        }
+
         return result.AsPwInstance();
     }
 }

@@ -28,19 +28,22 @@ public class PwState
     private int _currentScopeIndex = 0;
     public Tokeniser Tokeniser { get; private set; }
     private Parser parser;
-    private ScopedSymbolTable CurrentScope = new("global", 0, null);
+    private ScopedSymbolTable CurrentScope;
     
     public PwState()
     {
+        
+    }
+
+    private void RegisterDefaults()
+    {
+        CurrentScope = new("global", 0, null);
         RegisterType<PwActor>("actor");
         RegisterType<PwNumeric>("float");
         RegisterType<PwString>("string");
         RegisterType<PwObjectClass>("object");
         RegisterType<PwFunction>("function");
-        // testing instantiation
-        // CreateInstanceOfTypeName("actor", "ronnie", "ronnie");
     }
-
     public List<Token> LoadFile(string path)
     {
         Stream s = File.OpenRead(path);
@@ -90,6 +93,7 @@ public class PwState
 
     public object ExecuteChunk(Node node)
     {
+        RegisterDefaults();
         return node.Evaluate(CurrentScope);
     }
 

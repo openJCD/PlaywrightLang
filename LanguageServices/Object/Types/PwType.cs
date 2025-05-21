@@ -16,7 +16,7 @@ public class PwType<T> : PwObjectClass where T : PwObjectClass
     }
     
     [PwItem("__new__")]
-    public PwInstance CreateInstance(object[] args)
+    public PwInstance CreateInstance(params object[] args)
     {
         T instance = Activator.CreateInstance(typeof(T), args) as T;
         return new PwCsharpInstance(instance);

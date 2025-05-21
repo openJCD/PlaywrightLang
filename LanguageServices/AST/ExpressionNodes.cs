@@ -32,16 +32,19 @@ public class Expression(Node expr) : Node
 
 #region function
 
-public class FunctionCall(Node path, ParamExpressions args) : Node
+public class FunctionCall(Node left, ParamExpressions args) : Node
 {
+    public Node Left = left;
+    
     public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        return (path.Evaluate(scope) as PwCallableInstance).Invoke(args.AsArray(scope));
+        var argArr = args.AsArray(scope);
+        return (Left.Evaluate(scope) as PwCallableInstance).Invoke(argArr);
     }
     public override string ToPrettyString(int level)
     {
         string s = AddSpaces(level, $"function call: (\r\n");
-        s += $"{path.ToPrettyString(level + 1)},\r\n";
+        s += $"{Left.ToPrettyString(level + 1)},\r\n";
         s += $"{args.ToPrettyString(level + 1)}\r\n";
         s += AddSpaces(level, ")");
         return s;
@@ -104,7 +107,7 @@ public class ParamNames(ParamNames previous, DeclarationParameter current) : Nod
     public Dictionary<string, PwInstance?> GetParameters(ScopedSymbolTable scope)
     {
         Dictionary<string, PwInstance?> parameters;
-        if (Prev == null)
+        if (Prev != null)
         {
              parameters = previous.GetParameters(scope);
         }
@@ -112,8 +115,11 @@ public class ParamNames(ParamNames previous, DeclarationParameter current) : Nod
         {
             parameters = new();
         }
-        
-        parameters[Current.Id] = Current.Evaluate(scope);
+
+        if (current != null)
+        {
+            parameters[Current.Id] = Current.Evaluate(scope);
+        }
         return parameters;
     }
     public override string ToPrettyString(int level)
@@ -305,7 +311,15 @@ public class AccessOperator(Node left, Node right) : Node, IQualifiedIdentifier
     
     public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        throw new NotImplementedException();
+        PwInstance left = Left.Evaluate(scope);
+        if (right is Name name)
+        {
+            return left.Get(name.Value);
+        }
+        else
+        {
+            throw new PwException("Found identifier on right side of ':' operator.");
+        }
     }
 
     public void Set(object value)
@@ -461,19 +475,14 @@ public class Add : Node
     }
     public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        try
-        {
-            PwInstance l_val = Left.Evaluate(scope);
-            PwInstance r_val = Right.Evaluate(scope);
+        PwInstance l_val = null;
+        PwInstance r_val = null;
+        
+        l_val = Left.Evaluate(scope);
+        r_val = Right.Evaluate(scope);
 
-            Parser.Log($"Addition: {ToPrettyString(Level + 1)}");
-            return l_val.GetMethod("__add__").Invoke(l_val, r_val);
-        }
-        catch (Exception exception)
-        {
-            Parser.Log($"Unable to parse expression: {Left} + {Right}: {exception.Message}. (Likely a type mismatch.)");
-            return null;
-        }
+        Parser.Log($"Addition: \r\n {ToPrettyString(Level + 1)}");
+        return l_val.GetMethod("__add__").Invoke(l_val, r_val);
     }
 
     public override string ToPrettyString(int level)

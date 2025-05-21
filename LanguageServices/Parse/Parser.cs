@@ -23,7 +23,7 @@ public class Parser
     public Chunk Parse()
     {
         List<Node> nodes = new();
-        while (Peek().Type != TokenType.EOF)
+        while (CurrentToken.Type != TokenType.EOF)
         {
             nodes.Add(ParseBlock());
         }
@@ -40,7 +40,6 @@ public class Parser
         {
             if (IsBlockToken(CurrentToken.Type))
             {
-                //TODO: Parse various block types
                 switch (CurrentToken.Type)
                 {
                     case TokenType.SceneBlock:
@@ -104,6 +103,8 @@ public class Parser
             case TokenType.Enter:
                 expr = ParseInstantiation();
                 Expect("Expected ';' after instantiation.", TokenType.Semicolon);
+                break;
+            case TokenType.EOF:
                 break;
             default:
                 expr = ParseExpression();
@@ -247,7 +248,7 @@ public class Parser
         Node lvalue = ParseLogicalOr();
         if (IsAssignmentToken(CurrentToken.Type))
         {
-            if (lvalue.GetType() != typeof(Name) && lvalue.GetType() != typeof(AccessOperator))
+            if (lvalue is not Name && lvalue is not AccessOperator)
             {
                 throw Error(CurrentToken, "Expected lvalue of assignment expression to be an identifier or qualified path.");
             }
@@ -352,46 +353,43 @@ public class Parser
 
     public Node ParseMultiplicativeExpr()
     {
-        Node lvalue = ParsePathExpr();
+        Node lvalue = ParseCallExpr();
         
         while (CurrentToken.Type is TokenType.Multiply or TokenType.Divide)
         {
             Token t = Expect("Expected '*' or '/'", TokenType.Multiply, TokenType.Divide);
             if (t.Type == TokenType.Multiply)
             {
-                lvalue = new Multiply(lvalue, ParsePathExpr());
+                lvalue = new Multiply(lvalue, ParsePrimary());
             }
             else
             {
-                lvalue = new Divide(lvalue, ParsePathExpr());
+                lvalue = new Divide(lvalue, ParsePrimary());
             }
         }
 
         return lvalue;
     }
-    public Node ParsePathExpr()
+    public Node ParseCallExpr()
     {
-        Node lvalue = ParsePostfixExpression();
-        while (CurrentToken.Type is TokenType.Colon)
+        Node expr = ParsePrimary();
+        while (true)
         {
-            Token t = Expect("Expected ':' ", TokenType.Colon);
-            lvalue = new AccessOperator(lvalue, ParsePostfixExpression());
+            if (CurrentToken.Type == TokenType.Colon)
+            {
+                Expect("Expected ':' ", TokenType.Colon);
+                Name name = new Name(Expect("Expected identifier", TokenType.Name).Value);
+                expr = new AccessOperator(expr, name);
+            }
+            else if (CurrentToken.Type == TokenType.LParen)
+            {
+                Expect("Expected '(' ", TokenType.LParen);
+                expr = new FunctionCall(expr, ParseParameterExprs());
+                Expect("Expected ')'", TokenType.RParen);
+            }
+            else break;
         }
-        
-        return lvalue;
-    }
-    public Node ParsePostfixExpression()
-    {
-        Node lvalue = ParsePrimary();
-        while (CurrentToken.Type is TokenType.LParen)
-        {
-            Expect("Expected '(' to begin function call operator", TokenType.LParen);
-            ParamExpressions parameters = (ParamExpressions)ParseParameterExprs();
-            Expect("Expected ')' to close function call operator", TokenType.RParen);
-            lvalue = new FunctionCall(lvalue, parameters);
-        }
-
-        return lvalue;
+        return expr;
     }
 
     public Node ParsePrimary()
@@ -403,9 +401,9 @@ public class Parser
             switch (t.Type)
             {
                 case TokenType.Not:
-                    return new UnaryNot(ParsePrimary());
+                    return new UnaryNot(ParseCallExpr());
                 case TokenType.Minus:
-                    return new Negative(ParsePrimary());
+                    return new Negative(ParseCallExpr());
             }
         } 
         else if (CurrentToken.Type == TokenType.LParen)
@@ -443,7 +441,7 @@ public class Parser
         };
     }
 
-    public Node ParseParameterExprs()
+    public ParamExpressions ParseParameterExprs()
     {
         ParamExpressions _params = new ParamExpressions(null, new VoidNode());
         
