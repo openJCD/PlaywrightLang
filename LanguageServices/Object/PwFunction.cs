@@ -11,6 +11,7 @@ public class PwFunction : PwCallable
     private string _callerType;
     private ParamNames _parameters;
     private ScopedSymbolTable _capturedScope;
+    
     public PwFunction(ParamNames parameters, CompoundStmt body, string callerType, ScopedSymbolTable scope) : base()
     {
         _callerType = callerType;
@@ -40,7 +41,7 @@ public class PwFunction : PwCallable
         }
 
         // TODO: Replace with Playwright Null value, if practical to implement such a thing.
-        return null;
+        return new PwNullInstance();
     }
 }
 

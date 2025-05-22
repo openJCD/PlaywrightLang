@@ -11,8 +11,9 @@ public interface IQualifiedIdentifier
     /// <summary>
     /// Set the value associated with this path or pure identifier.
     /// </summary>
-    /// <param name="value"></param>
-    public void Set(object value);
+    /// <param name="obj"></param>
+    /// <param name="scope"></param>
+    public void Set(PwInstance obj, ScopedSymbolTable scope);
     public string ToPrettyString(int level);
 }
 

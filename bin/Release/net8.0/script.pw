@@ -1,12 +1,20 @@
 ﻿enter ronnie as actor("ronnie");
 
-# test function with a lot of parameters:
 func hello():
-    ronnie: says("hello");
+    enter james as actor("james");
+    ronnie: says("hello, james");
+    james:  says("what's up, ronnie");
+    
+    func inner_func():
+        ronnie: says("i am talking from inside a closure");
+    end
+    
+    f = inner_func;
+    f();
 end
 
 func add_and_say(left, right):
-    ronnie: says(left+right);
+    ronnie: says( (left + right):to_string() );
 end
 
 hello();

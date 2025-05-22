@@ -15,14 +15,14 @@ public class Name(string identifier) : Node, IQualifiedIdentifier
 
     public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        Parser.Log($"Found Name: {Value}");
+        //Parser.Log($"Found Name: {Value}");
 
         return scope.Lookup(Value);
     }
 
-    public void Set(object value)
+    public void Set(PwInstance obj, ScopedSymbolTable scope)
     {
-        throw new System.NotImplementedException();
+        scope.MutateSymbol(Value, obj);
     }
 
     public override string ToPrettyString(int level) => AddSpaces(level, $"name: '{Value}'");

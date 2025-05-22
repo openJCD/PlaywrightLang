@@ -11,22 +11,45 @@ public class PwNumeric (float val) : PwObjectClass
     }
 
     [PwItem("__add__")]
-    public override PwInstance PwAdd(PwInstance left, PwInstance right)
+    public float PwAdd(float left, float right)
     {
-        return ((float)left.GetUnderlyingObject() + (float)right.GetUnderlyingObject()).AsPwInstance();
+        return (left + right);
+    }
+
+    [PwItem("__sub__")]
+    public float PwSubtract(float left, float right)
+    {
+        return (left - right);
+    }
+
+    [PwItem("__mul__")]
+    public float PwMul(float left, float right)
+    {
+        return (left * right);
+    }
+
+    [PwItem("__div__")]
+    public float PwDiv(float left, float right)
+    {
+        return (left / right);
+    }
+        
+    [PwItem("to_string")]
+    public string ToString()
+    {
+        return Value.ToString();
     }
     
-    
     [PwItem("__true__")]
-    public override PwInstance PwTrue (PwInstance self)
+    public override bool PwTrue (PwInstance self)
     {
         if (Value > 0 || Value < 0)
         {
-            return new PwCsharpInstance(new PwBoolean(true));
+            return true;
         }
         else
         {
-            return new PwCsharpInstance(new PwBoolean(false));
+            return false;
         }
     }
 }

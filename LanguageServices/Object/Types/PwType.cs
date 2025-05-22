@@ -21,10 +21,4 @@ public class PwType<T> : PwObjectClass where T : PwObjectClass
         T instance = Activator.CreateInstance(typeof(T), args) as T;
         return new PwCsharpInstance(instance);
     }
-
-    [PwItem("__add__")]
-    public override PwInstance PwAdd(PwInstance left, PwInstance right)
-    {
-        throw new PwException("PwType does not support __add__");
-    }
 }

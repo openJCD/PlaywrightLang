@@ -143,6 +143,7 @@ public class DeclarationParameter(Name id, Node? literal) : Node
 {
     public string Id = id.Value;
     private Node? Literal = literal;
+    
     public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         return Literal?.Evaluate(scope)!;
@@ -166,7 +167,9 @@ public class AssignmentExpression(IQualifiedIdentifier lvalue, Node rvalue) : No
 {
     public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
-        throw new NotImplementedException();
+        PwInstance r_eval = rvalue.Evaluate(scope);
+        lvalue.Set(r_eval, scope);
+        return r_eval;
     }
 
     public override string ToPrettyString(int level)
@@ -304,27 +307,25 @@ public class UnaryNot(Node value) : Node
 #region operator
 
 #region non-math
-public class AccessOperator(Node left, Node right) : Node, IQualifiedIdentifier
+public class AccessOperator(Node left, Name right) : Node, IQualifiedIdentifier
 {
     private Node Left = left;
-    private Node Right = right;
-    
+    private Name Right = right;
+    private PwInstance l_eval = null;
     public override PwInstance Evaluate(ScopedSymbolTable scope)
     {
         PwInstance left = Left.Evaluate(scope);
-        if (right is Name name)
-        {
-            return left.Get(name.Value);
-        }
-        else
-        {
-            throw new PwException("Found identifier on right side of ':' operator.");
-        }
+
+        return left.Get(Right.Value); 
     }
 
-    public void Set(object value)
+    public void Set(PwInstance obj, ScopedSymbolTable scope)
     {
-        throw new NotImplementedException();
+        if (l_eval == null)
+        {
+            l_eval = Left.Evaluate(scope);
+        }
+        l_eval.Set(Right.Value, obj);
     }
 
     public override string ToPrettyString(int level)
@@ -481,7 +482,6 @@ public class Add : Node
         l_val = Left.Evaluate(scope);
         r_val = Right.Evaluate(scope);
 
-        Parser.Log($"Addition: \r\n {ToPrettyString(Level + 1)}");
         return l_val.GetMethod("__add__").Invoke(l_val, r_val);
     }
 
@@ -512,7 +512,6 @@ public class Subtract : Node
         {
             PwInstance l_val = Left.Evaluate(scope);
             PwInstance r_val = Right.Evaluate(scope);
-            Parser.Log($"Subtraction: {ToPrettyString(Level + 1)}");
             return l_val.GetMethod("__sub__").Invoke(l_val, r_val);
         }
         catch
@@ -559,7 +558,7 @@ public class Multiply(Node left, Node right) : Node
     {
         PwInstance l_val = Left.Evaluate(scope);
         PwInstance r_val = Right.Evaluate(scope);
-        return l_val.GetMethod("__mult__").Invoke(l_val, r_val);
+        return l_val.GetMethod("__mul__").Invoke(l_val, r_val);
     }
 
     public override string ToPrettyString(int level)

@@ -9,8 +9,8 @@ public class PwBoolean(bool isTrue) : PwObjectClass
     }
 
     [PwItem("__true__")]
-    public override PwInstance PwTrue(PwInstance self)
+    public override bool PwTrue(PwInstance self)
     {
-        return self;
+        return Value;
     }
 }

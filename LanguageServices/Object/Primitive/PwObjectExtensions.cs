@@ -2,9 +2,9 @@
 
 namespace PlaywrightLang.LanguageServices.Object.Primitive;
 
-public static class PwObjectExtensions
+internal static class PwObjectExtensions
 {
-    public static bool IsNumeric(this object value)
+    internal static bool IsNumeric(this object value)
     {
         return (value is (float or int or double or decimal));
     }
@@ -15,12 +15,14 @@ public static class PwObjectExtensions
     /// <param name="value"></param>
     /// <returns></returns>
     /// <exception cref="PwException"></exception>
-    public static PwInstance AsPwInstance(this object value)
+    internal static PwInstance AsPwInstance(this object value)
     {
             if (value is PwCsharpInstance v)
                 return v;
+            
             if (value is null)
                 return new PwNullInstance(); // null type
+            
             if (value is bool b)
                 return new PwCsharpInstance(new PwBoolean(b));
             
@@ -33,10 +35,8 @@ public static class PwObjectExtensions
             if (value is PwObjectClass)
                 return new PwCsharpInstance((PwObjectClass)value);
             
-            
-            
             throw new PwException("Object could not be converted to valid Playwright type. " +
-                                  "You might want this class to inherit from PwObjectClass.");
+                                  $"You might want class {value.GetType()} to inherit from PwObjectClass.");
     }
     /// <summary>
     /// Performs checks and returns a C# class representation of the Playwright object. 
@@ -44,7 +44,7 @@ public static class PwObjectExtensions
     /// <param name="value"></param>
     /// <returns></returns>
     /// <exception cref="PwException"></exception>
-    public static PwObjectClass AsPwObjectClass(this object value)
+    internal static PwObjectClass AsPwObjectClass(this object value)
     {
         if (value is bool b)
             return new PwBoolean(b);

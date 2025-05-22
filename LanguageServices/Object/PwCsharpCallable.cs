@@ -24,7 +24,8 @@ public class PwCsharpCallable(MethodInfo m, PwObjectClass methodOwner) : PwCalla
         object result;
         // hack to allow for the PwType __new__ method to work, as it uses `params`, which causes issues with calling
         // via reflection.
-        if (Method.GetParameters()[0].IsDefined(typeof(ParamArrayAttribute), false))
+        
+        if (Method.GetParameters().Length > 0 && Method.GetParameters()[0].IsDefined(typeof(ParamArrayAttribute), false))
         {
             result = Method.Invoke(target, [obj_args]);
         }

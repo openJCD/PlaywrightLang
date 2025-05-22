@@ -30,7 +30,7 @@ public class PwActor : PwObjectClass
     }
     
     [PwItem("says")]
-    public virtual void Say(string dialogue) {Console.WriteLine($"{Name}: {dialogue};");}
+    public virtual void Say(string dialogue) {Console.WriteLine($"{Name} says {dialogue}");}
     
     [PwItem("on_ready")]
     public virtual void Ready() {}
