@@ -12,11 +12,11 @@ namespace PlaywrightLang;
 /// Contains basic built-in methods - (for Playwright developer) Please try to keep members to a minimum for
 /// ease of use. 
 /// </summary>
-public class PwActor : PwObjectClass
+internal class PwActor : PwObjectClass
 {
 
-    [PwItem("name")]
-    public string Name { get; protected set; }
+    [PwItem("name")] 
+    public string Name;
     
     [PwItem("x")]
     public int XPos { get; set; }

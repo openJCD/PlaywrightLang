@@ -4,7 +4,7 @@ public class PwCallableInstance : PwInstance
 {
     private PwCallable _callable;
 
-    public PwCallableInstance(PwCallable callable)
+    public PwCallableInstance(PwCallable callable) : base()
     {
         _type = callable.GetType();
         _callable = callable;

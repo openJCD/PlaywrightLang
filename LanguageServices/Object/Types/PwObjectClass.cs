@@ -13,10 +13,17 @@ public class PwObjectClass
     // Method to determine an object's truthiness.
     // Must return PwCsharpInstance of type PwBoolean.
     [PwItem("__true__")]
-    public virtual bool PwTrue(PwInstance self)
+    public virtual bool PwTrue()
     {
         return true;
     }
+
+    [PwItem("__not__")]
+    public bool PwNot()
+    {
+        return false;
+    }
+    
     public PwObjectClass() {}
 
     public virtual object GetUnderlyingObject()

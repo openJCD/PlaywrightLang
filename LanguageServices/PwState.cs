@@ -1,14 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
-using System.Formats.Asn1;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
-using System.Transactions;
-using System.Xml.Schema;
 using PlaywrightLang.LanguageServices.AST;
 using PlaywrightLang.LanguageServices.Object;
 using PlaywrightLang.LanguageServices.Object.Primitive;
@@ -24,15 +18,14 @@ public class PwState
         Console.WriteLine("> Playwright State: " + message);
     }
     
-    private string _currentScopeName = "global"; 
-    private int _currentScopeIndex = 0;
     public Tokeniser Tokeniser { get; private set; }
     private Parser parser;
-    private ScopedSymbolTable CurrentScope;
-    
+    private PwScope CurrentScope;
+    private PwDefaults _defaults;
     public PwState()
     {
-        
+        _defaults = new PwDefaults(this);
+        RegisterDefaults();
     }
 
     private void RegisterDefaults()
@@ -43,6 +36,7 @@ public class PwState
         RegisterType<PwString>("string");
         RegisterType<PwObjectClass>("object");
         RegisterType<PwFunction>("function");
+        RegisterGlobalFunctions(_defaults);
     }
     public List<Token> LoadFile(string path)
     {
@@ -74,61 +68,90 @@ public class PwState
         return tokens;
     }
     
-    public void ParseString(string input)
+    public PwAst ParseString(string input)
     { 
-        Node tree = parser.Parse();
+        PwAst tree = parser.Parse();
         Console.Write(tree.ToPrettyString(0));
+        return tree;
     }
 
-    public Node ParseFile(string filepath)
+    public PwAst ParseFile(string filepath)
     {
         parser = new Parser(LoadFile(filepath));
         Stopwatch timer = Stopwatch.StartNew();
-        Node tree = parser.Parse();
+        PwAst tree = parser.Parse();
         timer.Stop();
         Parser.Log($"Done in {timer.ElapsedMilliseconds}ms");
         Parser.Log(tree.ToPrettyString(0) ?? string.Empty);
         return tree;
     }
 
-    public object ExecuteChunk(Node node)
+    /// <summary>
+    /// Resets the program state (scope and variables), and executes the given AST.
+    /// </summary>
+    /// <param name="node">Abstract Syntax Tree top-level node to execute.</param>
+    /// <returns></returns>
+    public object ExecuteChunk(PwAst node)
     {
         RegisterDefaults();
-        return node.Evaluate(CurrentScope);
+        return node.Evaluate(CurrentScope).GetUnderlyingObject();
     }
 
+    public object ExecuteFile(string path)
+    {
+        var tokens = LoadFile(path);
+        var node = ParseFile(path);
+        return ExecuteChunk(node);
+    }
+
+    public object ExecuteString(string input)
+    {
+        var tokens = LoadString(input);
+        var node = ParseString(input);
+        return ExecuteChunk(node);
+    }
+    
+    public object ExecuteFunction(string funcName, params object[] args)
+    {
+        if (CurrentScope.Lookup(funcName) is PwCallableInstance callable)
+        {
+            PwInstance[] pwArgs = new PwInstance[args.Length];
+            for (int i = 0; i < args.Length; i++)
+            {
+                pwArgs[i] = args[i].AsPwInstance();
+            }
+
+            return callable.Invoke(pwArgs);
+        }
+
+        return null;
+    }
     public void RegisterType<T>(string typeName) where T : PwObjectClass
     {
         CurrentScope.AddSymbol(typeName, new PwCsharpInstance(new PwType<T>(typeName)));
     }
-    
-    internal void EnterNestedScope(string scopeName)
+
+    public void RegisterFunction(string funcName, object target, MethodInfo methodInfo)
     {
-        _currentScopeName = scopeName;
-        ScopedSymbolTable newScope = new ScopedSymbolTable(scopeName, _currentScopeIndex+1, CurrentScope);
-        CurrentScope = newScope;
-        _currentScopeIndex++;
-    }
-    
-    internal object InvokeFunction(string funcName, params PwInstance[] args)
-    {
-        EnterNestedScope(funcName);
-        PwCallableInstance func = CurrentScope.Lookup(funcName) as PwCallableInstance;
-        if (func == null) throw new PwException($"Could not find function {funcName} in scope {CurrentScope.Name}");
-        object value = func.Invoke(args);
-        MoveOutOfCurrentScope();
-        return value;
-    }
-    internal void MoveOutOfCurrentScope()
-    {
-        _currentScopeIndex -= 1;
-        if (CurrentScope.Name != "global")
-        {
-            CurrentScope = CurrentScope.Parent;
-        }
-        _currentScopeName = CurrentScope.Name;
+        PwCsharpCallable innerCallable = new PwCsharpCallable(methodInfo, target);
+        PwCallableInstance instance = new PwCallableInstance(innerCallable);
+        CurrentScope.AddSymbol(funcName, instance);
     }
 
+    /// <summary>
+    /// Method that will iterate through all (including static and non-public)  members of a class and place any methods with PwItemAttribute into the global scope.
+    /// </summary>
+    public void RegisterGlobalFunctions(object target)
+    {
+        foreach (MethodInfo methodInfo in target.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Static |
+                                                                      BindingFlags.Public | BindingFlags.NonPublic))
+        {
+            PwItemAttribute attr = methodInfo.GetCustomAttribute<PwItemAttribute>();
+            if (attr != null)
+                RegisterFunction(attr.PwName, target, methodInfo);
+        }
+    }
+    
     private PwInstance CreateInstanceOfTypeName(string typeName, string id, params object[] args)
     {
         PwInstance[] pwArgs = new PwInstance[args.Length];

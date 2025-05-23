@@ -6,20 +6,25 @@ using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.LanguageServices.AST;
 
-public interface IQualifiedIdentifier
+internal interface IQualifiedIdentifier
 {
     /// <summary>
     /// Set the value associated with this path or pure identifier.
     /// </summary>
     /// <param name="obj"></param>
     /// <param name="scope"></param>
-    public void Set(PwInstance obj, ScopedSymbolTable scope);
-    public string ToPrettyString(int level);
+    internal void Set(PwInstance obj, PwScope scope);
+    
+    internal PwInstance Evaluate(PwScope scope);
+    
+    internal string ToPrettyString(int level);
+
+    internal string GetLastName();
 }
 
-public abstract class Node
+public abstract class PwAst
 {
-    public abstract PwInstance Evaluate(ScopedSymbolTable scope);
+    public abstract PwInstance Evaluate(PwScope scope);
     protected int Level = 0;
     
     public abstract string ToPrettyString(int level);
@@ -39,12 +44,11 @@ public abstract class Node
         return o;
     }
 }
-public class Block(string blockType, CompoundStmt stmt) : Node
+internal class Block(string blockType, CompoundStmt stmt) : PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        stmt.Evaluate(scope);
-        return null;
+        return stmt.Evaluate(scope);
     }
 
     public override string ToPrettyString(int level)
@@ -56,30 +60,42 @@ public class Block(string blockType, CompoundStmt stmt) : Node
     }
 }
 
-public class SceneBlock(string id, CompoundStmt stmt) : Block("scene", stmt)
+internal class SceneBlock(string id, CompoundStmt stmt) : Block("scene", stmt)
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
+        //TODO: make scenes callable by the state.
+        return stmt.Evaluate(scope);
     }
 }
 
-public class Chunk : Node
+internal class Chunk : PwAst
 {
-    List<Node> _nodes = new();
-    public Chunk(params Node[] nodes)
+    List<PwAst> _nodes = new();
+    internal Chunk(params PwAst[] nodes)
     {
         _nodes.AddRange(nodes);
     }
 
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        foreach (Node _nd in _nodes)
+        try
         {
-            _nd.Evaluate(scope); 
+            foreach (PwAst _nd in _nodes)
+            {
+                _nd.Evaluate(scope);
+            }
         }
+        catch (PwExit)
+        {
 
-        Parser.Log("parsed chunk successfully");
+        }
+        catch (PwReturn r)
+        {
+            return r.ReturnValue;
+        } 
+
+        PwState.Log("Evaluated chunk successfully");
         return null;
     }
 
@@ -87,7 +103,7 @@ public class Chunk : Node
     {
         StringBuilder sb = new StringBuilder();
         sb.Append("\r\nbegin chunk:\r\n");
-        foreach (Node nd in _nodes)
+        foreach (PwAst nd in _nodes)
         {
             sb.AppendLine(nd.ToPrettyString(level + 1)+",");
         }

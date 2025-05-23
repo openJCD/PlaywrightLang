@@ -5,14 +5,23 @@ using PlaywrightLang.LanguageServices.AST;
 
 namespace PlaywrightLang.LanguageServices.Parse;
 
-public class Parser
+internal class Parser
 {
     private List<Token> _tokenStream;
     private int _index;
     public static string TextLog = "";
     
     private bool _hadError = false;
-    private Token CurrentToken => _tokenStream[_index];
+    private Token CurrentToken
+    {
+        get
+        {
+            if (_index < _tokenStream.Count)
+                return _tokenStream[_index];
+            else return Token.None;
+        }
+    }
+
     public Parser(List<Token> tokens)
     {
         _tokenStream = tokens;
@@ -22,7 +31,7 @@ public class Parser
     
     public Chunk Parse()
     {
-        List<Node> nodes = new();
+        List<PwAst> nodes = new();
         while (CurrentToken.Type != TokenType.EOF)
         {
             nodes.Add(ParseBlock());
@@ -33,9 +42,9 @@ public class Parser
         return new Chunk(nodes.ToArray());
     }
 
-    public Node ParseBlock()
+    public PwAst ParseBlock()
     {
-        Node block = null;
+        PwAst block = null;
         try
         {
             if (IsBlockToken(CurrentToken.Type))
@@ -58,6 +67,10 @@ public class Parser
             Token t = Consume();
             while (t.Type != TokenType.EndBlock && t.Type != TokenType.Semicolon)
             {
+                if (t.Type == TokenType.EOF)
+                {
+                    break;
+                }
                 t = Consume();
             }
             return ParseBlock();
@@ -69,7 +82,7 @@ public class Parser
             throw Error(CurrentToken, "Expected block identifier ('scene', 'glossary', 'cast') or valid statement.");
     }
 
-    private Node ParseSceneBlock()
+    private PwAst ParseSceneBlock()
     {
         Consume(); // consume 'scene'
         string id = Expect("Expected identifier for scene. ", TokenType.Name).Value;
@@ -83,7 +96,7 @@ public class Parser
 
     public Statement ParseStatement() 
     {
-        Node expr = null;
+        PwAst expr = null;
 
         switch (CurrentToken.Type)
         {
@@ -243,9 +256,9 @@ public class Parser
     {
         return new Expression(ParseAssignmentExpression());
     }
-    public Node ParseAssignmentExpression()
+    public PwAst ParseAssignmentExpression()
     {
-        Node lvalue = ParseLogicalOr();
+        PwAst lvalue = ParseLogicalOr();
         if (IsAssignmentToken(CurrentToken.Type))
         {
             if (lvalue is not Name && lvalue is not AccessOperator)
@@ -272,9 +285,9 @@ public class Parser
         return lvalue;
     }
 
-    public Node ParseLogicalOr()
+    public PwAst ParseLogicalOr()
     {
-        Node lvalue = ParseLogicalAnd();
+        PwAst lvalue = ParseLogicalAnd();
         while (CurrentToken.Type == TokenType.LogicalOr)
         {
             Expect("Expected '||' or 'or'", TokenType.LogicalOr);
@@ -283,9 +296,9 @@ public class Parser
         return lvalue;
     }
 
-    public Node ParseLogicalAnd()
+    public PwAst ParseLogicalAnd()
     {
-        Node lvalue = ParseEqualityExpr();
+        PwAst lvalue = ParseEqualityExpr();
         while (CurrentToken.Type == TokenType.LogicalAnd)
         {
             Expect("Expected 'and' or '&&'.", TokenType.LogicalAnd);
@@ -294,9 +307,9 @@ public class Parser
         return lvalue;
     }
 
-    public Node ParseEqualityExpr()
+    public PwAst ParseEqualityExpr()
     {
-        Node lvalue = ParseRelationalExpr();
+        PwAst lvalue = ParseRelationalExpr();
         while (CurrentToken.Type == TokenType.EqualTo || CurrentToken.Type == TokenType.NotEqual)
         {
             Token t = Consume();
@@ -313,9 +326,9 @@ public class Parser
         return lvalue;
     }
 
-    public Node ParseRelationalExpr()
+    public PwAst ParseRelationalExpr()
     {
-        Node lvalue = ParseAdditiveExpr();
+        PwAst lvalue = ParseAdditiveExpr();
         while (IsRelationalToken(CurrentToken.Type))
         {
             Token t = Expect("Expected relational operator.", TokenType.MoreThan, TokenType.LessThan, TokenType.MoreThanEq,
@@ -332,9 +345,9 @@ public class Parser
         return lvalue;
     }
 
-    public Node ParseAdditiveExpr()
+    public PwAst ParseAdditiveExpr()
     {
-        Node lvalue = ParseMultiplicativeExpr();
+        PwAst lvalue = ParseMultiplicativeExpr();
         while (CurrentToken.Type is TokenType.Plus or TokenType.Minus)
         {
             Token t = Expect("Expected '+' or '-'", TokenType.Plus, TokenType.Minus);
@@ -351,9 +364,9 @@ public class Parser
         return lvalue;
     }
 
-    public Node ParseMultiplicativeExpr()
+    public PwAst ParseMultiplicativeExpr()
     {
-        Node lvalue = ParseCallExpr();
+        PwAst lvalue = ParseCallExpr();
         
         while (CurrentToken.Type is TokenType.Multiply or TokenType.Divide)
         {
@@ -370,9 +383,9 @@ public class Parser
 
         return lvalue;
     }
-    public Node ParseCallExpr()
+    public PwAst ParseCallExpr()
     {
-        Node expr = ParsePrimary();
+        PwAst expr = ParsePrimary();
         while (true)
         {
             if (CurrentToken.Type == TokenType.Colon)
@@ -392,9 +405,9 @@ public class Parser
         return expr;
     }
 
-    public Node ParsePrimary()
+    public PwAst ParsePrimary()
     {
-        Node expr = null;
+        PwAst expr = null;
         if (IsUnaryPrefix(CurrentToken.Type))
         {
             Token t = Consume();
@@ -420,7 +433,7 @@ public class Parser
         return expr;
     }
 
-    public Node ParseAtom()
+    public PwAst ParseAtom()
     {
         Token t = Expect("Expected atom: string literal, int literal, float literal, boolean literal or identifier.",
             TokenType.StringLiteral, 

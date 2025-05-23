@@ -1,18 +1,17 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using PlaywrightLang.LanguageServices.AST;
 using PlaywrightLang.LanguageServices.Object;
 
 namespace PlaywrightLang.LanguageServices;
 
-public class PwFunction : PwCallable
+internal class PwFunction : PwCallable
 {
     public readonly CompoundStmt Instructions;
     private string _callerType;
     private ParamNames _parameters;
-    private ScopedSymbolTable _capturedScope;
+    private PwScope _capturedScope;
     
-    public PwFunction(ParamNames parameters, CompoundStmt body, string callerType, ScopedSymbolTable scope) : base()
+    internal PwFunction(ParamNames parameters, CompoundStmt body, string callerType, PwScope scope) : base()
     {
         _callerType = callerType;
         Instructions = body;
@@ -22,9 +21,9 @@ public class PwFunction : PwCallable
 
     public override PwInstance Invoke(PwInstance[] args)
     {
-        //TODO: Add args to a new layer of the captured scope. 
+        //Add args to a new layer of the captured scope. 
         int i = 0;
-        ScopedSymbolTable scope = new ScopedSymbolTable("func", _capturedScope.Level + 1, _capturedScope);
+        PwScope scope = new PwScope("func", _capturedScope.Level + 1, _capturedScope);
         foreach (var arg in args)
         {
             var paramDict = _parameters.GetParameters(scope);
@@ -40,12 +39,6 @@ public class PwFunction : PwCallable
             return r.ReturnValue;
         }
 
-        // TODO: Replace with Playwright Null value, if practical to implement such a thing.
         return new PwNullInstance();
     }
-}
-
-public class PwReturn(PwInstance i) : Exception
-{
-    public readonly PwInstance ReturnValue = i; 
 }

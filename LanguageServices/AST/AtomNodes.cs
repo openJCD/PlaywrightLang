@@ -4,35 +4,39 @@ using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.LanguageServices.AST;
 
-public interface IAtomNode
+internal interface IAtomNode
 { 
-    public PwObjectClass AsPwObject(ScopedSymbolTable scope);
+    internal PwObjectClass AsPwObject(PwScope scope);
 }
 
-public class Name(string identifier) : Node, IQualifiedIdentifier
+internal class Name(string identifier) : PwAst, IQualifiedIdentifier
 {
-    public string Value { get; set; } = identifier;
+    internal string Value { get; set; } = identifier;
 
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         //Parser.Log($"Found Name: {Value}");
 
         return scope.Lookup(Value);
     }
 
-    public void Set(PwInstance obj, ScopedSymbolTable scope)
+    public void Set(PwInstance obj, PwScope scope)
     {
         scope.MutateSymbol(Value, obj);
     }
 
     public override string ToPrettyString(int level) => AddSpaces(level, $"name: '{Value}'");
+    public string GetLastName()
+    {
+        return Value;
+    }
 }
-public class Integer(int value) : Node, IAtomNode
+internal class Integer(int value) : PwAst, IAtomNode
 {
-    public int Value { get; private set; } = value;
+    internal int Value { get; private set; } = value;
 
-    public override PwInstance Evaluate(ScopedSymbolTable scope) => new PwCsharpInstance(new PwNumeric(Value));
-    public PwObjectClass AsPwObject(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope) => new PwCsharpInstance(new PwNumeric(Value));
+    public PwObjectClass AsPwObject(PwScope scope)
     {
         return new PwNumeric(Value);
     }
@@ -43,19 +47,19 @@ public class Integer(int value) : Node, IAtomNode
     }
 }
 
-public class StringLit(string value) : Node
+internal class StringLit(string value) : PwAst
 {
     readonly string Value = value;
 
-    public override PwInstance Evaluate(ScopedSymbolTable scope) => new PwCsharpInstance(new PwString(Value));
+    public override PwInstance Evaluate(PwScope scope) => new PwCsharpInstance(new PwString(Value));
 
     public override string ToPrettyString(int level) => AddSpaces(level, $"string: \"{Value}\"");
 }
 
-public class FloatLit(float value) : Node
+internal class FloatLit(float value) : PwAst
 {
     float Value = value;
-    public override PwInstance Evaluate(ScopedSymbolTable scope) => new PwCsharpInstance(new PwNumeric(Value));
+    public override PwInstance Evaluate(PwScope scope) => new PwCsharpInstance(new PwNumeric(Value));
 
     public override string ToPrettyString(int level)
     {
@@ -64,10 +68,10 @@ public class FloatLit(float value) : Node
     }
 }
 
-public class BooleanLit(bool isTrue) : Node
+internal class BooleanLit(bool isTrue) : PwAst
 {
     bool Value => isTrue;
-    public override PwInstance Evaluate(ScopedSymbolTable scope) => new PwCsharpInstance(new PwBoolean(Value));
+    public override PwInstance Evaluate(PwScope scope) => new PwCsharpInstance(new PwBoolean(Value));
 
     public override string ToPrettyString(int level) => AddSpaces(level, $"bool: {(isTrue ? "true" : "false")}");
 }

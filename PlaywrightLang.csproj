@@ -17,6 +17,9 @@
         <None Update="script.pw">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="tests.pw">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
     <ItemGroup>
         <EmbeddedResource Include="Icon.ico">
@@ -33,9 +36,6 @@
     </ItemGroup>
     <ItemGroup>
       <Compile Remove="LanguageServices\Nodes.cs" />
-    </ItemGroup>
-    <ItemGroup>
-      <Folder Include="Tests\" />
     </ItemGroup>
     <Target Name="RestoreDotnetTools" BeforeTargets="Restore">
         <Message Text="Restoring dotnet tools" Importance="High"/>

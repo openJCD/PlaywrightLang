@@ -6,11 +6,11 @@ using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.LanguageServices.AST;
 
-public class ExitNode : Node
+internal class ExitNode : PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
+        throw new PwExit();
     }
 
     public override string ToPrettyString(int level)
@@ -19,32 +19,11 @@ public class ExitNode : Node
     }
     
 }
-public class VoidNode : Node
+internal class VoidNode : PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope) { return null; }
+    public override PwInstance Evaluate(PwScope scope) { return null; }
     public override string ToPrettyString(int level)
     {
         return AddSpaces(level, "void");
     }
 }
-
-public class PostfixChain(Node[] operators) : Node
-{
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
-    {
-        throw new NotImplementedException();
-    }
-
-    public override string ToPrettyString(int level)
-    {
-        string s = AddSpaces(level, "postfix: (\r\n");
-        foreach (Node op in operators)
-        {
-            s += $"{op.ToPrettyString(level+1)}, \r\n";
-        }
-
-        s += AddSpaces(level, ")");
-        return  s;
-    }
-}
-

@@ -4,14 +4,14 @@ using PlaywrightLang.LanguageServices.Object;
 
 namespace PlaywrightLang.LanguageServices;
 
-public class ScopedSymbolTable(string name, int level, ScopedSymbolTable? parent)
+public class PwScope(string name, int level, PwScope? parent)
 {
     private Dictionary<string, PwInstance> Symbols = new();
-    public readonly ScopedSymbolTable Parent = parent;
+    public readonly PwScope Parent = parent;
     public readonly int Level = level;
     public readonly string Name = name;
 
-    public PwInstance Lookup(string id)
+    internal PwInstance Lookup(string id)
     {
         if (Symbols.Keys.Contains(id))
         {

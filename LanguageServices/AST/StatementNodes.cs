@@ -6,9 +6,9 @@ using PlaywrightLang.LanguageServices.Object;
 namespace PlaywrightLang.LanguageServices.AST;
 
 
-public class Statement(Node expr) : Node 
+internal class Statement(PwAst expr) : PwAst 
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         return expr.Evaluate(scope);
     }
@@ -22,10 +22,10 @@ public class Statement(Node expr) : Node
     }
 }
 
-public class CompoundStmt(params Statement[] args) : Node
+internal class CompoundStmt(params Statement[] args) : PwAst
 {
     private Statement[] statements = args;
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         foreach (Statement s in statements)
         {
@@ -48,9 +48,9 @@ public class CompoundStmt(params Statement[] args) : Node
     }
 }
 
-public class ReturnStmt(Node retValue) :  Node
+internal class ReturnStmt(PwAst retValue) :  PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         throw new PwReturn(retValue.Evaluate(scope));
     }
@@ -66,9 +66,9 @@ public class ReturnStmt(Node retValue) :  Node
     }
 }
 
-public class Instantiation(string name, Name typeName, ParamExpressions args) : Node
+internal class Instantiation(string name, Name typeName, ParamExpressions args) : PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         var instance = typeName.Evaluate(scope).GetMethod("__new__").Invoke(args.AsArray(scope));
         scope.AddSymbol(name, instance);
@@ -85,13 +85,13 @@ public class Instantiation(string name, Name typeName, ParamExpressions args) : 
     }
 }
 
-public class FunctionBlock(string id, string owner, ParamNames args, CompoundStmt body) : Node
+internal class FunctionBlock(string id, string owner, ParamNames args, CompoundStmt body) : PwAst
 {
     private string Id = id;
     private string Owner = owner;
     private ParamNames Args = args;
     private CompoundStmt Body = body;
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         PwFunction pwFunction = new PwFunction(Args, Body, Owner, scope);
         PwCallableInstance callableFunction = new PwCallableInstance(pwFunction);
@@ -110,9 +110,9 @@ public class FunctionBlock(string id, string owner, ParamNames args, CompoundStm
     }
 }
 
-public class IfStmt(Expression conditional, CompoundStmt statements) : Node
+internal class IfStmt(Expression conditional, CompoundStmt statements) : PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         if (conditional.IsTruthy(scope))
         {
@@ -134,13 +134,24 @@ public class IfStmt(Expression conditional, CompoundStmt statements) : Node
     }
 }
 
-public class WhileLoop(Expression conditional, CompoundStmt statements) : Node
+internal class WhileLoop(Expression conditional, CompoundStmt statements) : PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         while (conditional.IsTruthy(scope))
         {
-            statements.Evaluate(scope);
+            try
+            {
+                statements.Evaluate(scope);
+            }
+            catch (PwContinue)
+            {
+                continue;
+            }
+            catch (PwBreak)
+            {
+                break;
+            }
         } //TODO: implement continue, break
         return null;
     }
@@ -153,6 +164,34 @@ public class WhileLoop(Expression conditional, CompoundStmt statements) : Node
         s += AddSpaces(level + 1, ")\r\n");
         s += $"{statements.ToPrettyString(level + 1)},\r\n";
         s += AddSpaces(level, ")");
+        return s;
+    }
+}
+
+internal class ContinueStmt() : PwAst
+{
+    public override PwInstance Evaluate(PwScope scope)
+    {
+        throw new PwContinue();
+    }
+
+    public override string ToPrettyString(int level)
+    {
+        string s = AddSpaces(level, "continue");
+        return s;
+    }
+}
+
+internal class BreakStmt() : PwAst
+{
+    public override PwInstance Evaluate(PwScope scope)
+    {
+        throw new PwBreak();
+    }
+
+    public override string ToPrettyString(int level)
+    {
+        string s = AddSpaces(level, "break");
         return s;
     }
 }

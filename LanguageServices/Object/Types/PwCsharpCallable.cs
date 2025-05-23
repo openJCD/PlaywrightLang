@@ -5,10 +5,17 @@ using PlaywrightLang.LanguageServices.Object.Primitive;
 
 namespace PlaywrightLang.LanguageServices.Object;
 
-public class PwCsharpCallable(MethodInfo m, PwObjectClass methodOwner) : PwCallable
+internal class PwCsharpCallable : PwCallable
 {
-    public MethodInfo Method { get; } = m;
-    private PwObjectClass target = methodOwner;
+    public MethodInfo Method { get; }
+    private object target;
+
+    internal PwCsharpCallable(MethodInfo m, object methodOwner)
+    {
+        Method = m;
+        target = methodOwner;
+    }
+
     public override PwInstance Invoke(params PwInstance[] args)
     {
         object[] obj_args = new object[args.Length];
@@ -24,7 +31,7 @@ public class PwCsharpCallable(MethodInfo m, PwObjectClass methodOwner) : PwCalla
         object result;
         // hack to allow for the PwType __new__ method to work, as it uses `params`, which causes issues with calling
         // via reflection.
-        
+        // the length must be checked first to ensure we are not checking an empty array. 
         if (Method.GetParameters().Length > 0 && Method.GetParameters()[0].IsDefined(typeof(ParamArrayAttribute), false))
         {
             result = Method.Invoke(target, [obj_args]);

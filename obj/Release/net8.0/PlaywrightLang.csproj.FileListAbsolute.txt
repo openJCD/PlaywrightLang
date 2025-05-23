@@ -31,3 +31,4 @@ C:\Users\Stuyp\RiderProjects\PlaywrightLang\bin\Release\net8.0\runtimes\osx\nati
 C:\Users\Stuyp\RiderProjects\PlaywrightLang\bin\Release\net8.0\runtimes\win-arm64\native\cimgui.dll
 C:\Users\Stuyp\RiderProjects\PlaywrightLang\bin\Release\net8.0\runtimes\win-x64\native\cimgui.dll
 C:\Users\Stuyp\RiderProjects\PlaywrightLang\bin\Release\net8.0\runtimes\win-x86\native\cimgui.dll
+C:\Users\Stuyp\RiderProjects\PlaywrightLang\bin\Release\net8.0\tests.pw

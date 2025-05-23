@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace PlaywrightLang.LanguageServices.Object;
 
-public class PwNullInstance : PwInstance
+internal class PwNullInstance : PwInstance
 {
     public PwNullInstance() : base()
     {

@@ -8,6 +8,14 @@ public class PwInstance
     protected Dictionary<string, PwInstance> _members = new Dictionary<string, PwInstance>(); 
     
     public System.Type GetPwType() => _type;
+
+    public string InstanceName { get; set; } = "PwInstance";
+
+    public PwInstance()
+    {
+        
+    }
+    
     public virtual void Set(string memberName, PwInstance value)
     {
         if (_members.ContainsKey(memberName))
@@ -28,7 +36,7 @@ public class PwInstance
         }
         catch
         {
-            throw new PwException($"Could not get member {memberName} in instance.");
+            throw new PwException($"Could not get member {memberName} in instance of {InstanceName}.");
         }
     }
 
@@ -46,7 +54,7 @@ public class PwInstance
         }
         catch (KeyNotFoundException)
         {
-            throw new PwException($"Could not find callable {methodName} in instance.");
+            throw new PwException($"Could not find callable {methodName} in instance of {InstanceName}.");
         }
     }
 

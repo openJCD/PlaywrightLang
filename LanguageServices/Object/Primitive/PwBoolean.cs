@@ -1,6 +1,6 @@
 ﻿namespace PlaywrightLang.LanguageServices.Object.Primitive;
 
-public class PwBoolean(bool isTrue) : PwObjectClass
+internal class PwBoolean(bool isTrue) : PwObjectClass
 {
     [PwItem("__value__")] private bool Value = isTrue;
     public override object GetUnderlyingObject()
@@ -9,8 +9,20 @@ public class PwBoolean(bool isTrue) : PwObjectClass
     }
 
     [PwItem("__true__")]
-    public override bool PwTrue(PwInstance self)
+    public override bool PwTrue()
     {
         return Value;
+    }
+
+    [PwItem("__not__")]
+    public bool Not()
+    {
+        return !Value;
+    }
+
+    [PwItem("to_string")]
+    public override string ToString()
+    {
+        return Value.ToString();
     }
 }

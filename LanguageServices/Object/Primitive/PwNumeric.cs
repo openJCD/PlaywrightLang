@@ -1,6 +1,6 @@
 ﻿namespace PlaywrightLang.LanguageServices.Object.Primitive;
 
-public class PwNumeric (float val) : PwObjectClass
+internal class PwNumeric (float val) : PwObjectClass
 {
     [PwItem("__value__")]
     float Value { get; set; } = val;
@@ -33,15 +33,15 @@ public class PwNumeric (float val) : PwObjectClass
     {
         return (left / right);
     }
-        
-    [PwItem("to_string")]
-    public string ToString()
+
+    [PwItem("__eq__")]
+    public bool PwEquals(float left, float right)
     {
-        return Value.ToString();
+        return (left == right);
     }
     
     [PwItem("__true__")]
-    public override bool PwTrue (PwInstance self)
+    public override bool PwTrue ()
     {
         if (Value > 0 || Value < 0)
         {
@@ -51,5 +51,45 @@ public class PwNumeric (float val) : PwObjectClass
         {
             return false;
         }
+    }
+
+    [PwItem("__not__")]
+    public bool PwNot()
+    {
+        return !PwTrue();
+    }    
+    [PwItem("__neq__")]
+    public bool PwNotEquals(float left, float right)
+    {
+        return left != right;
+    }
+
+    [PwItem("__lt__")]
+    public bool PwLt(float left, float right)
+    {
+        return (left < right);
+    }
+
+    [PwItem("__gt__")]
+    public bool PwGt(float left, float right)
+    {
+        return (left > right);
+    }
+    
+    [PwItem("__geq__")]
+    public bool PwGeq(float left, float right)
+    {
+        return (left >= right);
+    }
+    [PwItem("__leq__")]
+    public bool PwLeq(float left, float right)
+    {
+        return (left <= right);
+    }
+    
+    [PwItem("to_string")]
+    public string ToString()
+    {
+        return Value.ToString();
     }
 }

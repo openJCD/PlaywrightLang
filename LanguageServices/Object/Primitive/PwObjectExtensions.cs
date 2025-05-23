@@ -10,10 +10,10 @@ internal static class PwObjectExtensions
     }
 
     /// <summary>
-    /// Performs checks and attempts to return a Playwright representation of the given object.
+    /// Performs basic constant-time checks and attempts to return a Playwright instanced representation of the given object.
     /// </summary>
     /// <param name="value"></param>
-    /// <returns></returns>
+    /// <returns>PwInstance of object</returns>
     /// <exception cref="PwException"></exception>
     internal static PwInstance AsPwInstance(this object value)
     {
@@ -32,8 +32,8 @@ internal static class PwObjectExtensions
             if (value is string s)
                 return new PwCsharpInstance(new PwString(s));
             
-            if (value is PwObjectClass)
-                return new PwCsharpInstance((PwObjectClass)value);
+            if (value is PwObjectClass o)
+                return new PwCsharpInstance(o);
             
             throw new PwException("Object could not be converted to valid Playwright type. " +
                                   $"You might want class {value.GetType()} to inherit from PwObjectClass.");

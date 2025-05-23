@@ -106,7 +106,7 @@ public class Tokeniser
                 case '<':
                     if (Peek() == '=')
                     {
-                        tokens.Add(new Token(TokenType.MoreThanEq, _currentLine, _currentColumn));
+                        tokens.Add(new Token(TokenType.LessThanEq, _currentLine, _currentColumn));
                         Consume();
                     }
                     else
@@ -115,7 +115,7 @@ public class Tokeniser
                 case '>':
                     if (Peek() == '=')
                     {
-                        tokens.Add(new Token(TokenType.LessThanEq, _currentLine, _currentColumn));
+                        tokens.Add(new Token(TokenType.MoreThanEq, _currentLine, _currentColumn));
                         Consume();
                     }
                     else
@@ -148,7 +148,6 @@ public class Tokeniser
                     }
                     else
                         throw Error("Incomplete 'logical and' token: '&' should be finished with another '&'.");
-
                     break;
                 default:
                     break;
@@ -262,6 +261,12 @@ public class Tokeniser
                         break;
                     case "enter":
                         tokens.Add(new Token(TokenType.Enter, _currentLine, _currentColumn));
+                        break;
+                    case "break":
+                        tokens.Add(new Token(TokenType.Break, _currentLine, _currentColumn));
+                        break;
+                    case "continue":
+                        tokens.Add(new Token(TokenType.Continue, _currentLine, _currentColumn));
                         break;
                     default:
                         tokens.Add(new Token(TokenType.Name, _currentLine, _currentColumn, _bufCurrent));
@@ -392,6 +397,8 @@ public enum TokenType
     Comma, 
     Return, // exeunt 
     With, // used in return statements: "exeunt with <expr>"
+    Break, 
+    Continue,
     BoolTrue,
     BoolFalse,
     Not, // 'not' | '!'

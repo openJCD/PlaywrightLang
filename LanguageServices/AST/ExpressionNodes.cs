@@ -4,19 +4,20 @@ using System.Collections.Generic;
 using System.Formats.Asn1;
 using System.Linq;
 using PlaywrightLang.LanguageServices.Object;
+using PlaywrightLang.LanguageServices.Object.Primitive;
 using PlaywrightLang.LanguageServices.Parse;
 
 namespace PlaywrightLang.LanguageServices.AST;
 
-public class Expression(Node expr) : Node
+internal class Expression(PwAst expr) : PwAst
 {
-    Node Inner = expr;
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    PwAst Inner = expr;
+    public override PwInstance Evaluate(PwScope scope)
     {
         return expr.Evaluate(scope);
     }
 
-    public bool IsTruthy(ScopedSymbolTable scope)
+    internal bool IsTruthy(PwScope scope)
     {
         PwInstance result = expr.Evaluate(scope);
         return (bool)result.GetMethod("__true__").Invoke().GetUnderlyingObject();
@@ -32,11 +33,11 @@ public class Expression(Node expr) : Node
 
 #region function
 
-public class FunctionCall(Node left, ParamExpressions args) : Node
+internal class FunctionCall(PwAst left, ParamExpressions args) : PwAst
 {
-    public Node Left = left;
+    internal PwAst Left = left;
     
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         var argArr = args.AsArray(scope);
         return (Left.Evaluate(scope) as PwCallableInstance).Invoke(argArr);
@@ -51,17 +52,17 @@ public class FunctionCall(Node left, ParamExpressions args) : Node
     }
 }
 
-public class ParamExpressions(ParamExpressions previous, Node current) : Node
+internal class ParamExpressions(ParamExpressions previous, PwAst current) : PwAst
 {
 
     ParamExpressions Previous = previous;
-    Node Current = current;
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    PwAst Current = current;
+    public override PwInstance Evaluate(PwScope scope)
     {
         return null;
     }
 
-    public PwInstance[] AsArray(ScopedSymbolTable scope)
+    internal PwInstance[] AsArray(PwScope scope)
     {
         List<PwInstance> result;
         if (previous == null)
@@ -94,17 +95,17 @@ public class ParamExpressions(ParamExpressions previous, Node current) : Node
     }
 }
 
-public class ParamNames(ParamNames previous, DeclarationParameter current) : Node
+internal class ParamNames(ParamNames previous, DeclarationParameter current) : PwAst
 {
     private ParamNames Prev = previous;
     private DeclarationParameter Current = current;
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         return null;
     }
     // compile a dictionary of the prior ParamNames plus the current one.
     // the PwInstance? in each pair represents the default value 
-    public Dictionary<string, PwInstance?> GetParameters(ScopedSymbolTable scope)
+    internal Dictionary<string, PwInstance?> GetParameters(PwScope scope)
     {
         Dictionary<string, PwInstance?> parameters;
         if (Prev != null)
@@ -139,12 +140,12 @@ public class ParamNames(ParamNames previous, DeclarationParameter current) : Nod
     }
 }
 
-public class DeclarationParameter(Name id, Node? literal) : Node
+internal class DeclarationParameter(Name id, PwAst? literal) : PwAst
 {
-    public string Id = id.Value;
-    private Node? Literal = literal;
+    internal string Id = id.Value;
+    private PwAst? Literal = literal;
     
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         return Literal?.Evaluate(scope)!;
     }
@@ -163,11 +164,12 @@ public class DeclarationParameter(Name id, Node? literal) : Node
 
 #region assignment
 
-public class AssignmentExpression(IQualifiedIdentifier lvalue, Node rvalue) : Node 
+internal class AssignmentExpression(IQualifiedIdentifier lvalue, PwAst rvalue) : PwAst 
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         PwInstance r_eval = rvalue.Evaluate(scope);
+        r_eval.InstanceName = lvalue.GetLastName();
         lvalue.Set(r_eval, scope);
         return r_eval;
     }
@@ -182,11 +184,15 @@ public class AssignmentExpression(IQualifiedIdentifier lvalue, Node rvalue) : No
     }
 }
 
-public class IncrementalAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
+internal class IncrementalAssignment(IQualifiedIdentifier lvalue, PwAst rvalue) : PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
+        PwInstance r_eval = rvalue.Evaluate(scope);
+        PwInstance l_eval = lvalue.Evaluate(scope);
+        PwInstance result = l_eval.GetMethod("__add__").Invoke(l_eval, r_eval);
+        lvalue.Set(r_eval, scope);
+        return r_eval;    
     }
 
     public override string ToPrettyString(int level)
@@ -198,11 +204,15 @@ public class IncrementalAssignment(IQualifiedIdentifier lvalue, Node rvalue) : N
         return s;
     }
 }
-public class DecrementalAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
+internal class DecrementalAssignment(IQualifiedIdentifier lvalue, PwAst rvalue) : PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
+        PwInstance r_eval = rvalue.Evaluate(scope);
+        PwInstance l_eval = lvalue.Evaluate(scope);
+        PwInstance result = l_eval.GetMethod("__sub__").Invoke(l_eval, r_eval);
+        lvalue.Set(r_eval, scope);
+        return r_eval;        
     }
 
     public override string ToPrettyString(int level)
@@ -215,11 +225,15 @@ public class DecrementalAssignment(IQualifiedIdentifier lvalue, Node rvalue) : N
     }
 }
 
-public class DivAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
+internal class DivAssignment(IQualifiedIdentifier lvalue, PwAst rvalue) : PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
+        PwInstance r_eval = rvalue.Evaluate(scope);
+        PwInstance l_eval = lvalue.Evaluate(scope);
+        PwInstance result = l_eval.GetMethod("__div__").Invoke(l_eval, r_eval);
+        lvalue.Set(r_eval, scope);
+        return r_eval;
     }
 
     public override string ToPrettyString(int level)
@@ -231,11 +245,16 @@ public class DivAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
         return s;
     }
 }
-public class MultAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
+internal class MultAssignment(IQualifiedIdentifier lvalue, PwAst rvalue) : PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
+        PwInstance r_eval = rvalue.Evaluate(scope);
+        PwInstance l_eval = lvalue.Evaluate(scope);
+        PwInstance result = l_eval.GetMethod("__mul__").Invoke(l_eval, r_eval);
+        lvalue.Set(r_eval, scope);
+        return r_eval;
+        
     }
 
     public override string ToPrettyString(int level)
@@ -252,12 +271,15 @@ public class MultAssignment(IQualifiedIdentifier lvalue, Node rvalue) : Node
 
 #region logic
 
-public class LogicalOr(Node lvalue, Node rvalue) : Node
+internal class LogicalOr(PwAst lvalue, PwAst rvalue) : PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
-    }
+        PwInstance l_eval = lvalue.Evaluate(scope);
+        PwInstance r_eval = rvalue.Evaluate(scope);
+        bool l_true = (bool)l_eval.GetMethod("__true__").Invoke().GetUnderlyingObject();
+        bool r_true = (bool)l_eval.GetMethod("__true__").Invoke().GetUnderlyingObject();
+        return (l_true || r_true).AsPwInstance();    }
 
     public override string ToPrettyString(int level)
     {
@@ -269,11 +291,15 @@ public class LogicalOr(Node lvalue, Node rvalue) : Node
     }
 }
 
-public class LogicalAnd(Node lvalue, Node rvalue) : Node
+internal class LogicalAnd(PwAst lvalue, PwAst rvalue) : PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
+        PwInstance l_eval = lvalue.Evaluate(scope);
+        PwInstance r_eval = rvalue.Evaluate(scope);
+        bool l_true = (bool)l_eval.GetMethod("__true__").Invoke().GetUnderlyingObject();
+        bool r_true = (bool)l_eval.GetMethod("__true__").Invoke().GetUnderlyingObject();
+        return (l_true && r_true).AsPwInstance();
     }
 
     public override string ToPrettyString(int level)
@@ -286,11 +312,11 @@ public class LogicalAnd(Node lvalue, Node rvalue) : Node
     }
 }
 
-public class UnaryNot(Node value) : Node
+internal class UnaryNot(PwAst value) : PwAst
 {
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
+        return value.Evaluate(scope).GetMethod("__not__").Invoke();
     }
 
     public override string ToPrettyString(int level)
@@ -307,19 +333,19 @@ public class UnaryNot(Node value) : Node
 #region operator
 
 #region non-math
-public class AccessOperator(Node left, Name right) : Node, IQualifiedIdentifier
+internal class AccessOperator(PwAst left, Name right) : PwAst, IQualifiedIdentifier
 {
-    private Node Left = left;
+    private PwAst Left = left;
     private Name Right = right;
     private PwInstance l_eval = null;
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         PwInstance left = Left.Evaluate(scope);
 
         return left.Get(Right.Value); 
     }
 
-    public void Set(PwInstance obj, ScopedSymbolTable scope)
+    public void Set(PwInstance obj, PwScope scope)
     {
         if (l_eval == null)
         {
@@ -336,17 +362,25 @@ public class AccessOperator(Node left, Name right) : Node, IQualifiedIdentifier
         s += AddSpaces(level, ")");
         return s;
     }
+
+    public string GetLastName()
+    {
+        return Right.Value;
+    }
 }
 
 #region equality
-public class EqualOperator(Node left, Node right) : Node
+internal class EqualOperator(PwAst left, PwAst right) : PwAst
 {
-    private Node Left = left;
-    private Node Right = right;
+    private PwAst Left = left;
+    private PwAst Right = right;
     
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
+        PwInstance l_eval = Left.Evaluate(scope);
+        PwInstance r_eval = Right.Evaluate(scope);
+        PwCallableInstance left_eq = l_eval.GetMethod("__eq__");
+        return left_eq.Invoke(l_eval, r_eval);
     }
 
     public override string ToPrettyString(int level)
@@ -359,14 +393,17 @@ public class EqualOperator(Node left, Node right) : Node
     }
 }
 
-public class NotEqualOperator(Node left, Node right) : Node
+internal class NotEqualOperator(PwAst left, PwAst right) : PwAst
 {
-    private Node Left = left;
-    private Node Right = right;
+    private PwAst Left = left;
+    private PwAst Right = right;
 
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
+        PwInstance l_eval = Left.Evaluate(scope);
+        PwInstance r_eval = Right.Evaluate(scope);
+        PwCallableInstance left_eq = l_eval.GetMethod("__neq__");
+        return left_eq.Invoke(l_eval, r_eval);
     }
 
     public override string ToPrettyString(int level)
@@ -382,14 +419,17 @@ public class NotEqualOperator(Node left, Node right) : Node
 
 #region relational
 
-public class GreaterThanOperator(Node left, Node right) : Node
+internal class GreaterThanOperator(PwAst left, PwAst right) : PwAst
 {
-    private Node Left = left;
-    private Node Right = right;
+    private PwAst Left = left;
+    private PwAst Right = right;
 
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
+        PwInstance l_eval = Left.Evaluate(scope);
+        PwInstance r_eval = Right.Evaluate(scope);
+        PwCallableInstance left_eq = l_eval.GetMethod("__gt__");
+        return left_eq.Invoke(l_eval, r_eval);
     }
 
     public override string ToPrettyString(int level)
@@ -401,15 +441,17 @@ public class GreaterThanOperator(Node left, Node right) : Node
         return s;
     }
 }
-public class LessThanOperator(Node left, Node right) : Node
+internal class LessThanOperator(PwAst left, PwAst right) : PwAst
 {
-    private Node Left = left;
-    private Node Right = right;
+    private PwAst Left = left;
+    private PwAst Right = right;
 
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
-    }
+        PwInstance l_eval = Left.Evaluate(scope);
+        PwInstance r_eval = Right.Evaluate(scope);
+        PwCallableInstance left_eq = l_eval.GetMethod("__lt__");
+        return left_eq.Invoke(l_eval, r_eval);    }
 
     public override string ToPrettyString(int level)
     {
@@ -420,38 +462,42 @@ public class LessThanOperator(Node left, Node right) : Node
         return s;
     }
 }
-public class GreaterThanEqOperator(Node left, Node right) : Node
+internal class GreaterThanEqOperator(PwAst left, PwAst right) : PwAst
 {
-    private Node Left = left;
-    private Node Right = right;
+    private PwAst Left = left;
+    private PwAst Right = right;
 
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
-    }
+        PwInstance l_eval = Left.Evaluate(scope);
+        PwInstance r_eval = Right.Evaluate(scope);
+        PwCallableInstance left_eq = l_eval.GetMethod("__geq__");
+        return left_eq.Invoke(l_eval, r_eval);    }
 
     public override string ToPrettyString(int level)
     {
-        string s = AddSpaces(level, "more than or equal: (\r\n");
+        string s = AddSpaces(level, "greater or equal: (\r\n");
         s += $"{left.ToPrettyString(level + 1) },\r\n";
         s += $"{right.ToPrettyString(level + 1) }\r\n";
         s += AddSpaces(level, ")");
         return s;
     }
 }
-public class LessThanEqOperator(Node left, Node right) : Node
+internal class LessThanEqOperator(PwAst left, PwAst right) : PwAst
 {
-    private Node Left = left;
-    private Node Right = right;
+    private PwAst Left = left;
+    private PwAst Right = right;
 
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        throw new NotImplementedException();
-    }
+        PwInstance l_eval = Left.Evaluate(scope);
+        PwInstance r_eval = Right.Evaluate(scope);
+        PwCallableInstance left_eq = l_eval.GetMethod("__leq__");
+        return left_eq.Invoke(l_eval, r_eval);    }
 
     public override string ToPrettyString(int level)
     {
-        string s = AddSpaces(level, "less than or equal: (\r\n");
+        string s = AddSpaces(level, "less or equal: (\r\n");
         s += $"{left.ToPrettyString(level + 1) },\r\n";
         s += $"{right.ToPrettyString(level + 1) }\r\n";
         s += AddSpaces(level, ")");
@@ -463,18 +509,18 @@ public class LessThanEqOperator(Node left, Node right) : Node
 #endregion non-math
 
 #region math
-public class Add : Node
+internal class Add : PwAst
 {
-    public readonly Node Left;
+    internal readonly PwAst Left;
     
-    public readonly Node Right;
+    internal readonly PwAst Right;
 
-    public Add(Node left, Node right)
+    internal Add(PwAst left, PwAst right)
     {
         this.Left = left;
         this.Right = right;
     }
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         PwInstance l_val = null;
         PwInstance r_val = null;
@@ -496,28 +542,21 @@ public class Add : Node
         return s;
     }
 }
-public class Subtract : Node
+internal class Subtract : PwAst
 {
-    public readonly Node Left;
-    public readonly Node Right;
-    public Subtract(Node left, Node right)
+    internal readonly PwAst Left;
+    internal readonly PwAst Right;
+    internal Subtract(PwAst left, PwAst right)
     {
         this.Left = left;
         this.Right = right;
     }
     
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
-        try
-        {
-            PwInstance l_val = Left.Evaluate(scope);
-            PwInstance r_val = Right.Evaluate(scope);
-            return l_val.GetMethod("__sub__").Invoke(l_val, r_val);
-        }
-        catch
-        {
-            throw new Exception($"Unable to parse expression: {Left.Evaluate(scope).ToString()} - {Right.Evaluate(scope).ToString()}. Expected integer values.");
-        }
+        PwInstance l_val = Left.Evaluate(scope);
+        PwInstance r_val = Right.Evaluate(scope);
+        return l_val.GetMethod("__sub__").Invoke(l_val, r_val);
     }
     public override string ToPrettyString(int level)
     {
@@ -530,11 +569,11 @@ public class Subtract : Node
         return s;
     }
 }
-public class Negative(Node term) : Node
+internal class Negative(PwAst term) : PwAst
 {
-    public readonly Node Term = term;
+    internal readonly PwAst Term = term;
 
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         PwInstance t = Term.Evaluate(scope);
         return t.GetMethod("__neg__").Invoke(t);
@@ -549,12 +588,12 @@ public class Negative(Node term) : Node
         return s;
     }
 }
-public class Multiply(Node left, Node right) : Node
+internal class Multiply(PwAst left, PwAst right) : PwAst
 {
-    public readonly Node Left = left;
-    public readonly Node Right = right;
+    internal readonly PwAst Left = left;
+    internal readonly PwAst Right = right;
 
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         PwInstance l_val = Left.Evaluate(scope);
         PwInstance r_val = Right.Evaluate(scope);
@@ -572,12 +611,12 @@ public class Multiply(Node left, Node right) : Node
         return s;
     }
 }
-public class Divide(Node left, Node right) : Node
+internal class Divide(PwAst left, PwAst right) : PwAst
 {
-    public readonly Node Left = left;
-    public readonly Node Right = right;
+    internal readonly PwAst Left = left;
+    internal readonly PwAst Right = right;
 
-    public override PwInstance Evaluate(ScopedSymbolTable scope)
+    public override PwInstance Evaluate(PwScope scope)
     {
         PwInstance l_val = Left.Evaluate(scope);
         PwInstance r_val = Right.Evaluate(scope);

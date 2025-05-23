@@ -3,7 +3,7 @@ using System.Dynamic;
 
 namespace PlaywrightLang.LanguageServices.Object.Types;
 
-public class PwType<T> : PwObjectClass where T : PwObjectClass
+internal class PwType<T> : PwObjectClass where T : PwObjectClass
 {
     private T _underlyingType;
     

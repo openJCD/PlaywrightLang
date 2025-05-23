@@ -7,14 +7,18 @@ func hello():
     
     func inner_func():
         ronnie: says("i am talking from inside a closure");
+        ronnie: says(str(2 == 2));
+        ronnie: says(str(2 != 2));
     end
+    
     f = inner_func;
     f();
 end
 
 func add_and_say(left, right):
-    ronnie: says( (left + right):to_string() );
+    ronnie: says( str(left + right) );
 end
 
 hello();
 add_and_say(3, 5);
+james: says("hey!");
