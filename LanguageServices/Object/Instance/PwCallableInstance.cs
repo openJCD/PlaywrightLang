@@ -10,7 +10,7 @@ public class PwCallableInstance : PwInstance
         _callable = callable;
     }
     
-    public PwInstance Invoke(params PwInstance[] args)
+    public PwInstance Invoke(params object[] args)
     {
         return _callable.Invoke(args);
     }

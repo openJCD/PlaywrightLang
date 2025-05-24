@@ -1,16 +1,25 @@
-﻿func test_arithmetic():
+﻿func assert(result, desired, message):
+    end_message = message + "... ";
+    if result == desired then
+        end_message += "PASS";
+    else then
+        end_message = "FAIL";
+    end
+    print(end_message);
+end
+
+func test_arithmetic():
     print("##### TESTING ARITHMETIC FUNCTIONALITY #####");
-    print(str(2+2)); # 4
-    print(str(3/4)); # 0.75
-    print(str(2+2*0.75)); # 3.5
-    print(str(10/200*2)); # 0.1
-    # PASS
+    assert(2+2, 4, "2+2=4"); # 4
+    assert(3/4, 0.75, "3/4=0.75"); # 0.75
+    assert(2+2*0.75, 3.5, "2+2*0.75=3.5"); # 3.5
+    assert(10/200*2, 0.1, "10/200*2=0.1"); # 0.1
 end
 
 func test_instantiation():
     print("##### TESTING ACTOR INSTANTIATION #####");
     enter ronnie as actor("ronnie");
-    print(str(ronnie));
+    assert(ronnie: name, "ronnie", "ronnie's name is registered as ronnie");
     # PASS
 end
 
@@ -19,15 +28,15 @@ func test_return():
     func ret_func(arg):
         exeunt with arg * 2;
     end
-    print(str(ret_func(2))); 
+    assert(ret_func(2))); 
     # PASS
 end
 
 func test_external_calls(example_actor):
     print("##### THIS IS BEING CALLED EXTERNALLY #####");
-    print(example_actor: name); # should print whatever name the actor originally had.
+    print("original name: " + example_actor: name); # should print whatever name the actor originally had.
     example_actor:name = "test name"; # sets the name of the actor to "test name".
-    print(example_actor: name); # should be "test name"
+    assert(example_actor: name, "test name", "example_actor name change"); # should be "test name"
     # PASS
 end
 
@@ -85,9 +94,7 @@ func test_while(iterations):
         print("count: " + str(counter));
         counter += 1;
     end
-    if (counter == iterations-1) then
-        print("PASS");
-    end
+    assert(counter, iterations, "counter == iterations of loop");
     # PASS
 end
 
@@ -104,7 +111,7 @@ func test_list_object():
     list: append(9);
     list: append("string object!");
     counter = 0;
-    while counter < list: length do
+    while counter < list: __len__() do
         print ("list at position " + str(counter) + ": " + str(list[counter]));
         counter += 1;
     end
@@ -114,12 +121,21 @@ func test_list_object():
     print(str("removed second item from the list"));
     
     counter = 0;
-    while counter < list: length do
+    while counter < list: __len__() do
         print ("list at position " + str(counter) + ": " + str(list[counter]));
         counter += 1;
     end
     # PASS
 end
+
+func test_for_loop(list_object):
+    print ("##### TESTING FOR LOOPS #####");
+    for item in list_object do
+        print("found list item: " + str(item));
+    end
+end
+enter ronnie_reborn as actor("ronnie");
+example_list = ["one", "two", "three", ronnie_reborn, "five"];
 
 test_arithmetic();
 test_instantiation();
@@ -129,3 +145,4 @@ test_string_concatenation();
 test_assignment();
 test_while(5);
 test_list_object();
+test_for_loop(example_list);

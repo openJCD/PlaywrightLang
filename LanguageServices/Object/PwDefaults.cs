@@ -1,5 +1,6 @@
 ﻿using System;
 using ImGuiNET;
+using PlaywrightLang.LanguageServices.Object.Primitive;
 
 namespace PlaywrightLang.LanguageServices.Object;
 
@@ -21,6 +22,11 @@ internal class PwDefaults : PwObjectClass
     internal static string PwToString(object obj)
     {
         return obj.ToString();
+    }
+
+    internal static float PwGetLength(object obj)
+    {
+        return (float)obj.AsPwInstance().GetMethod("__len__").Invoke().GetUnderlyingObject();
     }
 
     [PwItem("num")]

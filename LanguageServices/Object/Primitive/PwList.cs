@@ -9,8 +9,8 @@ internal class PwList : PwObjectClass
 {
     public List<PwInstance> innerList;
     
-    [PwItem("length")]
-    public float Length => innerList.Count;
+    [PwItem("__len__")]
+    public float GetLength() => innerList.Count;
     
     public PwList(IEnumerable inner)
     {

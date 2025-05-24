@@ -16,16 +16,16 @@ internal class PwCsharpCallable : PwCallable
         target = methodOwner;
     }
 
-    public override PwInstance Invoke(params PwInstance[] args)
+    public override PwInstance Invoke(params object[] args)
     {
         object[] obj_args = new object[args.Length];
         for (int i = 0; i < args.Length; i++)
         {
-            if (args[i] == null)
-            {
-                continue;
-            }
-            obj_args[i] = args[i].GetUnderlyingObject();
+            // only run the conversion if the argument is actually an instance.
+            if (args[i] is PwInstance instance)
+                obj_args[i] = instance.GetUnderlyingObject();
+            else 
+                obj_args[i] = args[i];
         }
 
         object result;

@@ -5,5 +5,5 @@ namespace PlaywrightLang.LanguageServices;
 
 public class PwCallable : PwObjectClass
 {
-    public virtual PwInstance Invoke(params PwInstance[] args) => throw new NotImplementedException();
+    public virtual PwInstance Invoke(params object[] args) => throw new NotImplementedException();
 }

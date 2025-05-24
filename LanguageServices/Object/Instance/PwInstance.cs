@@ -57,6 +57,7 @@ public class PwInstance
             throw new PwException($"Could not find callable {methodName} in instance of {InstanceName}.");
         }
     }
+    public bool HasMethod(string memberName) => _members.ContainsKey(memberName); 
 
     public virtual object GetUnderlyingObject()
     {

@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using PlaywrightLang.LanguageServices.AST;
 using PlaywrightLang.LanguageServices.Object;
+using PlaywrightLang.LanguageServices.Object.Primitive;
 
 namespace PlaywrightLang.LanguageServices;
 
@@ -19,7 +20,7 @@ internal class PwFunction : PwCallable
         _capturedScope = scope;
     }
 
-    public override PwInstance Invoke(PwInstance[] args)
+    public override PwInstance Invoke(object[] args)
     {
         //Add args to a new layer of the captured scope. 
         int i = 0;
@@ -27,7 +28,7 @@ internal class PwFunction : PwCallable
         foreach (var arg in args)
         {
             var paramDict = _parameters.GetParameters(scope);
-            scope.MutateSymbol(paramDict.Keys.ToArray()[i], arg); // for each argument, add its literal to the 
+            scope.MutateSymbol(paramDict.Keys.ToArray()[i], arg.AsPwInstance()); // for each argument, add its literal to the 
             i++;
         }
         try

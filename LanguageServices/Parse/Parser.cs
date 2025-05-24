@@ -118,6 +118,17 @@ internal class Parser
                 expr = ParseInstantiation();
                 Expect("Expected ';' after instantiation.", TokenType.Semicolon);
                 break;
+            case TokenType.Break:
+                expr = new BreakStmt();
+                Expect("Expected ';' after break.", TokenType.Semicolon);
+                break;
+            case TokenType.Continue:
+                expr = new ContinueStmt();
+                Expect("Expected ';' after continue.", TokenType.Semicolon);
+                break;
+            case TokenType.For:
+                expr = ParseForLoop();
+                break;
             case TokenType.EOF:
                 break;
             default:
@@ -133,7 +144,7 @@ internal class Parser
     {
         
         List<Statement> statements = new();
-        while (CurrentToken.Type != TokenType.EndBlock && CurrentToken.Type != TokenType.EOF)
+        while (CurrentToken.Type != TokenType.EndBlock && CurrentToken.Type != TokenType.EOF && CurrentToken.Type != TokenType.Else)
         {
             try
             {
@@ -176,10 +187,41 @@ internal class Parser
         Expect("Expected 'then' after if condition", TokenType.Then);
         CompoundStmt stmt = ParseCompoundStmt();
         Token t = Expect("Expected 'end' or 'else'.", TokenType.EndBlock, TokenType.Else);
-        //TODO: Implement if/else statements.
-        return new IfStmt(condition, stmt);
+        PwAst else_block = null;
+        if (t.Type == TokenType.Else)
+        {
+            else_block = ParseElseStmt();
+            Expect("Expected 'end'", TokenType.EndBlock);
+        }
+        return new IfStmt(condition, stmt, else_block);
     }
-    
+
+    public PwAst ParseElseStmt()
+    {
+        bool isConditionalElse = CurrentToken.Type == TokenType.If;
+        Expression condition = null;
+        if (isConditionalElse)
+        {
+            Consume();
+            condition = ParseExpression();
+        }
+        else
+        {
+            Expect("Expected 'then'", TokenType.Then);
+        }
+        CompoundStmt stmt = ParseCompoundStmt();
+        if (isConditionalElse)
+        {
+            if (CurrentToken.Type == TokenType.Else)
+            {
+                Consume();
+                return new IfStmt(condition, stmt, ParseElseStmt());
+            }
+            else
+                return new IfStmt(condition, stmt, null);
+        }
+        return stmt;
+    }
     public WhileLoop ParseWhileLoop()
     {
         Expect("Expected 'while'", TokenType.While);
@@ -190,6 +232,18 @@ internal class Parser
         return new WhileLoop(condition, stmt);
     }
 
+    public ForLoop ParseForLoop()
+    {
+        Expect("Expected 'for'", TokenType.For);
+        Name item = new Name(Expect("Expected single identifier", TokenType.Name).Value);
+        Expect("Expected 'in'", TokenType.In);
+        PwAst collection = ParseExpression();
+        Expect("Expected 'do' to begin loop block", TokenType.Do);
+        CompoundStmt stmt = ParseCompoundStmt();
+        Expect("Expected 'end' to end loop block.", TokenType.EndBlock);
+        return new ForLoop(item, collection, stmt);
+    }
+    
     public FunctionBlock ParseFunctionBlock()
     {
         Expect("Expected 'func'", TokenType.Func);

@@ -179,10 +179,6 @@ public class Tokeniser
                 tokens.Add(new Token(TokenType.StringLiteral, _currentLine, _currentColumn, _bufCurrent));
                 _bufCurrent = "";
             }
-            
-            if (!char.IsLetterOrDigit(ch_consumed))
-                continue;
-            
             if (char.IsLetter(ch_consumed) || ch_consumed == '_')
             {
                 _bufCurrent += ch_consumed;
@@ -273,6 +269,9 @@ public class Tokeniser
                         break;
                     case "continue":
                         tokens.Add(new Token(TokenType.Continue, _currentLine, _currentColumn));
+                        break;
+                    case "in":
+                        tokens.Add(new Token(TokenType.In, _currentLine, _currentColumn));
                         break;
                     default:
                         tokens.Add(new Token(TokenType.Name, _currentLine, _currentColumn, _bufCurrent));
@@ -428,6 +427,7 @@ public enum TokenType
     Enter, // enter
     LSqBracket, // [
     RSqBracket, // ]
+    In
 }
 
 public struct Token

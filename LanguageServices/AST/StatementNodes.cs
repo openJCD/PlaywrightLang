@@ -1,7 +1,9 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Net.Security;
 using PlaywrightLang.LanguageServices.Object;
+using PlaywrightLang.LanguageServices.Object.Primitive;
 
 namespace PlaywrightLang.LanguageServices.AST;
 
@@ -110,14 +112,18 @@ internal class FunctionBlock(string id, string owner, ParamNames args, CompoundS
     }
 }
 
-internal class IfStmt(Expression conditional, CompoundStmt statements) : PwAst
+internal class IfStmt(Expression conditional, CompoundStmt statements, PwAst? elseStmt) : PwAst
 {
     public override PwInstance Evaluate(PwScope scope)
     {
         if (conditional.IsTruthy(scope))
         {
             return statements.Evaluate(scope);
-        } //TODO: Implement Else
+        }
+        else
+        {
+            return elseStmt?.Evaluate(scope);
+        }
         
         return null;
     }
@@ -152,7 +158,7 @@ internal class WhileLoop(Expression conditional, CompoundStmt statements) : PwAs
             {
                 break;
             }
-        } //TODO: implement continue, break
+        } 
         return null;
     }
 
@@ -163,6 +169,54 @@ internal class WhileLoop(Expression conditional, CompoundStmt statements) : PwAs
         s += $"{conditional.ToPrettyString(level + 2)},\r\n";
         s += AddSpaces(level + 1, ")\r\n");
         s += $"{statements.ToPrettyString(level + 1)},\r\n";
+        s += AddSpaces(level, ")");
+        return s;
+    }
+}
+
+internal class ForLoop(Name item, PwAst collection, CompoundStmt statements) : PwAst
+{
+    public override PwInstance Evaluate(PwScope scope)
+    {
+        PwScope local_scope = new PwScope("for_loop", scope.Level + 1, scope);
+        
+        PwInstance l_eval = collection.Evaluate(scope);
+        if (!l_eval.HasMethod("__indg__") || !l_eval.HasMethod("__len__"))
+        {
+            throw new PwTypeException(l_eval.InstanceName,
+                $"Collection {l_eval.InstanceName} either does not implement __indg__ or __len__ for indexing during iteration");
+        }
+
+        float length = (float)l_eval.GetMethod("__len__").Invoke().GetUnderlyingObject();
+        int counter = 0;
+        while (counter < length)
+        {
+            local_scope.MutateSymbol(item.Value, l_eval.GetMethod("__indg__").Invoke(counter));
+            try
+            {
+                statements.Evaluate(local_scope);
+            }
+            catch (PwContinue)
+            {
+                // continues regardless
+            }
+            catch (PwBreak)
+            {
+                break;
+            }
+
+            counter++;
+        }
+
+        return new PwNullInstance();
+    }
+
+    public override string ToPrettyString(int level)
+    {
+        string s = AddSpaces(level, "for: (\r\n");
+        s += item.ToPrettyString(level+1) + " in:\r\n";
+        s += collection.ToPrettyString(level + 1) + "\r\n";
+        s += statements.ToPrettyString(level + 1) + "\r\n";
         s += AddSpaces(level, ")");
         return s;
     }
