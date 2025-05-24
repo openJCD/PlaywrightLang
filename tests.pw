@@ -3,7 +3,7 @@
     if result == desired then
         end_message += "PASS";
     else then
-        end_message = "FAIL";
+        end_message += "FAIL";
     end
     print(end_message);
 end
@@ -28,7 +28,7 @@ func test_return():
     func ret_func(arg):
         exeunt with arg * 2;
     end
-    assert(ret_func(2))); 
+    assert(ret_func(2), 4, "return from closure"); 
     # PASS
 end
 
@@ -134,6 +134,21 @@ func test_for_loop(list_object):
         print("found list item: " + str(item));
     end
 end
+
+func test_advanced_branching(input1, input2):
+    print ("##### TESTING ADVANCED BRANCHING #####");
+    if input1 == input2 then
+        exeunt with "equal";
+    else if input1 > input2 then
+        exeunt with "greater";
+    else if input1 < input2 then
+        exeunt with "less";
+    else then
+        exeunt with "weird";
+    end
+end
+    
+
 enter ronnie_reborn as actor("ronnie");
 example_list = ["one", "two", "three", ronnie_reborn, "five"];
 
@@ -146,3 +161,7 @@ test_assignment();
 test_while(5);
 test_list_object();
 test_for_loop(example_list);
+b = test_advanced_branching; # closure for quicker asserts
+assert(b(1, 1), "equal", "first branch");
+assert(b(2, 1), "greater", "second branch");
+assert(b(1, 2), "less", "third branch");

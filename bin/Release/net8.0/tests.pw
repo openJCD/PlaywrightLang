@@ -3,7 +3,7 @@
     if result == desired then
         end_message += "PASS";
     else then
-        end_message = "FAIL";
+        end_message += "FAIL";
     end
     print(end_message);
 end
@@ -14,13 +14,12 @@ func test_arithmetic():
     assert(3/4, 0.75, "3/4=0.75"); # 0.75
     assert(2+2*0.75, 3.5, "2+2*0.75=3.5"); # 3.5
     assert(10/200*2, 0.1, "10/200*2=0.1"); # 0.1
-    # PASS
 end
 
 func test_instantiation():
     print("##### TESTING ACTOR INSTANTIATION #####");
     enter ronnie as actor("ronnie");
-    print(str(ronnie));
+    assert(ronnie: name, "ronnie", "ronnie's name is registered as ronnie");
     # PASS
 end
 
@@ -29,15 +28,15 @@ func test_return():
     func ret_func(arg):
         exeunt with arg * 2;
     end
-    print(str(ret_func(2))); 
+    assert(ret_func(2), 4, "return from closure"); 
     # PASS
 end
 
 func test_external_calls(example_actor):
     print("##### THIS IS BEING CALLED EXTERNALLY #####");
-    print(example_actor: name); # should print whatever name the actor originally had.
+    print("original name: " + example_actor: name); # should print whatever name the actor originally had.
     example_actor:name = "test name"; # sets the name of the actor to "test name".
-    print(example_actor: name); # should be "test name"
+    assert(example_actor: name, "test name", "example_actor name change"); # should be "test name"
     # PASS
 end
 
@@ -135,6 +134,21 @@ func test_for_loop(list_object):
         print("found list item: " + str(item));
     end
 end
+
+func test_advanced_branching(input1, input2):
+    print ("##### TESTING ADVANCED BRANCHING #####");
+    if input1 == input2 then
+        exeunt with "equal";
+    else if input1 > input2 then
+        exeunt with "greater";
+    else if input1 < input2 then
+        exeunt with "less";
+    else then
+        exeunt with "weird";
+    end
+end
+    
+
 enter ronnie_reborn as actor("ronnie");
 example_list = ["one", "two", "three", ronnie_reborn, "five"];
 
@@ -147,3 +161,9 @@ test_assignment();
 test_while(5);
 test_list_object();
 test_for_loop(example_list);
+b = test_advanced_branching; # closure for quicker asserts
+assert(b(1, 1), "equal", "first branch");
+assert(b(2, 1), "greater", "second branch");
+assert(b(1, 2), "less", "third branch");
+
+

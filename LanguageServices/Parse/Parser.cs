@@ -205,10 +205,8 @@ internal class Parser
             Consume();
             condition = ParseExpression();
         }
-        else
-        {
-            Expect("Expected 'then'", TokenType.Then);
-        }
+        Expect("Expected 'then'", TokenType.Then);
+        
         CompoundStmt stmt = ParseCompoundStmt();
         if (isConditionalElse)
         {
