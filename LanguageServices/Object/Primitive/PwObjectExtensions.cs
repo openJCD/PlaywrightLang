@@ -1,4 +1,6 @@
-﻿using Microsoft.Xna.Framework.Graphics;
+﻿using System.Collections;
+using System.Collections.Generic;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace PlaywrightLang.LanguageServices.Object.Primitive;
 
@@ -25,12 +27,18 @@ internal static class PwObjectExtensions
             
             if (value is bool b)
                 return new PwCsharpInstance(new PwBoolean(b));
-            
+
+            if (value is IEnumerable<object> e)
+                return new PwCsharpInstance(new PwList(e));
+  
             if (IsNumeric(value))
                 return new PwCsharpInstance(new PwNumeric((float)value));
              
             if (value is string s)
                 return new PwCsharpInstance(new PwString(s));
+
+            if (value is char c)
+                return new PwCsharpInstance(new PwString(c.ToString()));
             
             if (value is PwObjectClass o)
                 return new PwCsharpInstance(o);

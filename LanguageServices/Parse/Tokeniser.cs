@@ -149,6 +149,12 @@ public class Tokeniser
                     else
                         throw Error("Incomplete 'logical and' token: '&' should be finished with another '&'.");
                     break;
+                case '[':
+                    tokens.Add(new Token(TokenType.LSqBracket, _currentLine, _currentColumn));
+                    break;
+                case ']':
+                    tokens.Add(new Token(TokenType.RSqBracket, _currentLine, _currentColumn));
+                    break;
                 default:
                     break;
             }
@@ -419,7 +425,9 @@ public enum TokenType
     Else,
     Then,
     Do,
-    Enter // enter
+    Enter, // enter
+    LSqBracket, // [
+    RSqBracket, // ]
 }
 
 public struct Token

@@ -52,6 +52,62 @@ internal class FunctionCall(PwAst left, ParamExpressions args) : PwAst
     }
 }
 
+internal class IndexOperator(PwAst left, PwAst expr) : PwAst, IQualifiedIdentifier
+{
+    private PwInstance l_eval = null;
+    private PwInstance r_eval = null;
+    public void Set(PwInstance obj, PwScope scope)
+    {
+        if (l_eval != null)
+            l_eval.GetMethod("__inds__").Invoke(r_eval, obj);
+    }
+
+    public override PwInstance Evaluate(PwScope scope)
+    {
+        l_eval = left.Evaluate(scope);
+        r_eval = expr.Evaluate(scope);
+        return l_eval.GetMethod("__indg__").Invoke(r_eval);
+    }
+
+    public override string ToPrettyString(int level)
+    {
+        string s = AddSpaces(level, "index: (\r\n");
+        s += $"{expr.ToPrettyString(level + 1)}\r\n";
+        s += AddSpaces(level, ")");
+        return s;
+    }
+
+    public string GetLastName()
+    {
+        return l_eval.InstanceName + '_' + r_eval.InstanceName;
+    }
+}
+
+internal class ListLiteral(PwAst[] exprs) : PwAst
+{
+    private List<PwInstance> items = new List<PwInstance>();
+    public override PwInstance Evaluate(PwScope scope)
+    {
+        foreach (var e in exprs)
+        {
+            items.Add(e.Evaluate(scope));
+        }
+
+        return new PwCsharpInstance(new PwList(items));
+    }
+
+    public override string ToPrettyString(int level)
+    {
+        string s = AddSpaces(level, "list: \r\n");
+        foreach (var i in exprs)
+        {
+            s += i.ToPrettyString(level + 1) + "\r\n";
+        }
+        s += AddSpaces(level, ")");
+        return s;
+    }
+}
+
 internal class ParamExpressions(ParamExpressions previous, PwAst current) : PwAst
 {
 
@@ -191,7 +247,7 @@ internal class IncrementalAssignment(IQualifiedIdentifier lvalue, PwAst rvalue) 
         PwInstance r_eval = rvalue.Evaluate(scope);
         PwInstance l_eval = lvalue.Evaluate(scope);
         PwInstance result = l_eval.GetMethod("__add__").Invoke(l_eval, r_eval);
-        lvalue.Set(r_eval, scope);
+        lvalue.Set(result, scope);
         return r_eval;    
     }
 
@@ -211,7 +267,7 @@ internal class DecrementalAssignment(IQualifiedIdentifier lvalue, PwAst rvalue) 
         PwInstance r_eval = rvalue.Evaluate(scope);
         PwInstance l_eval = lvalue.Evaluate(scope);
         PwInstance result = l_eval.GetMethod("__sub__").Invoke(l_eval, r_eval);
-        lvalue.Set(r_eval, scope);
+        lvalue.Set(result, scope);
         return r_eval;        
     }
 
@@ -232,7 +288,7 @@ internal class DivAssignment(IQualifiedIdentifier lvalue, PwAst rvalue) : PwAst
         PwInstance r_eval = rvalue.Evaluate(scope);
         PwInstance l_eval = lvalue.Evaluate(scope);
         PwInstance result = l_eval.GetMethod("__div__").Invoke(l_eval, r_eval);
-        lvalue.Set(r_eval, scope);
+        lvalue.Set(result, scope);
         return r_eval;
     }
 
@@ -252,7 +308,7 @@ internal class MultAssignment(IQualifiedIdentifier lvalue, PwAst rvalue) : PwAst
         PwInstance r_eval = rvalue.Evaluate(scope);
         PwInstance l_eval = lvalue.Evaluate(scope);
         PwInstance result = l_eval.GetMethod("__mul__").Invoke(l_eval, r_eval);
-        lvalue.Set(r_eval, scope);
+        lvalue.Set(result, scope);
         return r_eval;
         
     }

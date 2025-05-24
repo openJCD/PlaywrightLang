@@ -28,16 +28,4 @@ internal class PwDefaults : PwObjectClass
     {
         return Convert.ToSingle(obj);
     }
-
-    /*[PwItem("assert")]
-    internal bool PwAssert(string command, object comparison)
-    {
-        Console.Write($"[TEST]: {command}... ");
-        bool result = _state.ExecuteString($"exeunt with {command};") == comparison;
-        if (result)
-            Console.Write(" OK");
-        else 
-            Console.Write(" FAIL");
-        return result;
-    }*/
 }

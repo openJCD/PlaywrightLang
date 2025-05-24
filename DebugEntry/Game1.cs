@@ -35,8 +35,8 @@ internal class Game1 : Game
         state = new PwState();
         // run tests.
         Stopwatch sw = new Stopwatch();
-        sw.Start();
         PwAst f = state.ParseFile("tests.pw");
+        sw.Start();
         state.ExecuteChunk(f);
         sw.Stop();
         Console.WriteLine("Evaluated tests in " + sw.ElapsedMilliseconds + " ms.");

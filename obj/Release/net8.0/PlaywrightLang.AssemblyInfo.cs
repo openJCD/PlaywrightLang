@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PlaywrightLang")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f1b2b7ad728df4b34b16dc728d6685e07ea2b691")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f2cb426a1c331fba7063d6cdcee737305e985f58")]
 [assembly: System.Reflection.AssemblyProductAttribute("PlaywrightLang")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PlaywrightLang")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

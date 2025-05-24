@@ -55,10 +55,69 @@ func test_relational_and_equality():
     # PASS
 end
 
+func test_assignment():
+
+    print ("##### TESTING ARITHMETIC ASSIGNMENT OPERATIONS #####");
+    var1 = 0;
+    var2 = 2;
+    var3 = 6;
+    var4 = 10;
+    
+    var1 += 1;
+    print ("incremental assign should be 1: " + str(var1));
+    
+    var2 *= 2;
+    print ("multiplicative assign should be 4: " + str(var2));
+
+    var3 -= 1;
+    print ("decremental assign should be 5: " + str(var3));
+
+    var4 /= 4;
+    print ("divisive assign should be 2.5: " + str(var4));
+    
+    # PASS
+end
+
+func test_while(iterations):
+    print ("##### TESTING WHILE LOOPS #####");
+    counter = 0;
+    while counter < iterations do
+        print("count: " + str(counter));
+        counter += 1;
+    end
+    if (counter == iterations-1) then
+        print("PASS");
+    end
+    # PASS
+end
+
 func test_string_concatenation():
     print("##### TESTING STRING CONCATENATION OPERATORS #####");
     print("hello, " + "world!"); # "hello, world!"
     print("the quick brown fox jumps over the lazy dog..." - " lazy"); # the quick brown fox jumps over the dog
+    
+    # PASS
+end
+
+func test_list_object():
+    list = [1, 2, 3, 4, 5, 6, 7, 8];
+    list: append(9);
+    list: append("string object!");
+    counter = 0;
+    while counter < list: length do
+        print ("list at position " + str(counter) + ": " + str(list[counter]));
+        counter += 1;
+    end
+    
+    list: remove_at(1); # should delete 2
+    
+    print(str("removed second item from the list"));
+    
+    counter = 0;
+    while counter < list: length do
+        print ("list at position " + str(counter) + ": " + str(list[counter]));
+        counter += 1;
+    end
 end
 
 test_arithmetic();
@@ -66,4 +125,6 @@ test_instantiation();
 test_return();
 test_relational_and_equality();
 test_string_concatenation();
-assert("2+2", 4);
+test_assignment();
+test_while(5);
+test_list_object();

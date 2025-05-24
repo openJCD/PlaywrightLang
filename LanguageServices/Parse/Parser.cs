@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Xna.Framework.Graphics;
 using PlaywrightLang.LanguageServices.AST;
 
 namespace PlaywrightLang.LanguageServices.Parse;
@@ -400,6 +401,12 @@ internal class Parser
                 expr = new FunctionCall(expr, ParseParameterExprs());
                 Expect("Expected ')'", TokenType.RParen);
             }
+            else if (CurrentToken.Type == TokenType.LSqBracket)
+            {
+                Expect("Expected '['", TokenType.LSqBracket);
+                expr = new IndexOperator(expr, ParseExpression());
+                Expect("Expected ']'", TokenType.RSqBracket);
+            }
             else break;
         }
         return expr;
@@ -424,6 +431,21 @@ internal class Parser
             Consume();
             expr = ParseExpression();
             Expect("Expected ')' to close bracketed expression.", TokenType.RParen);
+        } else if (CurrentToken.Type == TokenType.LSqBracket)
+        {
+            Consume();
+            List<PwAst> exprs = new List<PwAst>();
+            while (true)
+            {
+                exprs.Add(ParseExpression());
+                if (CurrentToken.Type != TokenType.RSqBracket)
+                {
+                    Expect("Expected ',' to delimit arguments", TokenType.Comma);
+                }
+                else break;
+            }
+            Expect("Expected ']' to close list literal.", TokenType.RSqBracket);
+            return new ListLiteral(exprs.ToArray());
         }
         else 
         {
@@ -433,6 +455,8 @@ internal class Parser
         return expr;
     }
 
+    
+    
     public PwAst ParseAtom()
     {
         Token t = Expect("Expected atom: string literal, int literal, float literal, boolean literal or identifier.",

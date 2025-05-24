@@ -96,7 +96,7 @@ internal class Chunk : PwAst
         } 
 
         PwState.Log("Evaluated chunk successfully");
-        return null;
+        return new PwNullInstance();
     }
 
     public override string ToPrettyString(int level)
