@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Diagnostics.SymbolStore;
 using PlaywrightLang.LanguageServices.Object;
 
 namespace PlaywrightLang.LanguageServices;
@@ -22,16 +23,34 @@ public class PwScope(string name, int level, PwScope? parent)
     }
     internal void MutateSymbol(string name, PwInstance symbol)
     {
-        Symbols[name] = symbol;
+
+        if (parent != null && parent.HasSymbol(name))
+        {
+            parent.MutateSymbol(name, symbol);
+        }
+        else 
+        {
+            Symbols[name] = symbol;
+        }
+        
+    }
+    internal bool HasSymbol(string symbol)
+    {
+        if (Symbols.ContainsKey(symbol))
+        {
+            return true;
+        }
+        else
+        {
+            if (parent != null)
+                return parent.HasSymbol(symbol);
+            else
+                return false;
+        }
     }
     
     internal void AddSymbol(string name, PwInstance symbol)
     {
         Symbols.Add(name, symbol);
-    }
-
-    internal void AddSymbolAlias(string alias, PwInstance symbol)
-    {
-        Symbols.Add(alias, symbol);
     }
 }

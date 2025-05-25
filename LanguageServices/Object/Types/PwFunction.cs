@@ -28,7 +28,7 @@ internal class PwFunction : PwCallable
         foreach (var arg in args)
         {
             var paramDict = _parameters.GetParameters(scope);
-            scope.MutateSymbol(paramDict.Keys.ToArray()[i], arg.AsPwInstance()); // for each argument, add its literal to the 
+            scope.AddSymbol(paramDict.Keys.ToArray()[i], arg.AsPwInstance()); // for each argument, add its literal to the 
             i++;
         }
         try

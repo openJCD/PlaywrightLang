@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using PlaywrightLang.LanguageServices.Object.Primitive;
@@ -19,6 +20,8 @@ internal class PwCsharpCallable : PwCallable
     public override PwInstance Invoke(params object[] args)
     {
         object[] obj_args = new object[args.Length];
+
+        List<ParameterInfo> parameters = Method.GetParameters().ToList();
         for (int i = 0; i < args.Length; i++)
         {
             // only run the conversion if the argument is actually an instance.
@@ -27,12 +30,16 @@ internal class PwCsharpCallable : PwCallable
             else 
                 obj_args[i] = args[i];
         }
-
+        
+        if (parameters.Count != args.Length)
+        {
+            throw new PwException($"Parameter count mismatch found for C# method {Method.Name}.");
+        }
         object result;
         // hack to allow for the PwType __new__ method to work, as it uses `params`, which causes issues with calling
         // via reflection.
         // the length must be checked first to ensure we are not checking an empty array. 
-        if (Method.GetParameters().Length > 0 && Method.GetParameters()[0].IsDefined(typeof(ParamArrayAttribute), false))
+        if (parameters.Count > 0 && Method.GetParameters()[0].IsDefined(typeof(ParamArrayAttribute), false))
         {
             result = Method.Invoke(target, [obj_args]);
         }

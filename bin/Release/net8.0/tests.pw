@@ -8,6 +8,16 @@
     print(end_message);
 end
 
+func test_scopes():
+    print("##### TESTING SCOPES #####");
+    a = 1;
+    func inner_scope():
+        a += 1;
+    end
+    inner_scope();
+    assert(a, 2, "inner scope sets outer variable correctly...");        
+end
+
 func test_arithmetic():
     print("##### TESTING ARITHMETIC FUNCTIONALITY #####");
     assert(2+2, 4, "2+2=4"); # 4
@@ -147,11 +157,12 @@ func test_advanced_branching(input1, input2):
         exeunt with "weird";
     end
 end
-    
 
+# testing creation of object instances    
 enter ronnie_reborn as actor("ronnie");
 example_list = ["one", "two", "three", ronnie_reborn, "five"];
 
+# actually run the tests
 test_arithmetic();
 test_instantiation();
 test_return();
@@ -161,9 +172,43 @@ test_assignment();
 test_while(5);
 test_list_object();
 test_for_loop(example_list);
-b = test_advanced_branching; # closure for quicker asserts
+
+b = test_advanced_branching; # simply copying the function but with a smaller name so i can type it wuicker
+
 assert(b(1, 1), "equal", "first branch");
 assert(b(2, 1), "greater", "second branch");
 assert(b(1, 2), "less", "third branch");
 
+test_scopes();
 
+# the big performance test:
+func fib(n):
+    fibonacci = [0, 1];
+    i = 0;
+    while i less than n do
+        p = fibonacci: __len__();
+        n1 = fibonacci[p - 1];
+        n2 = fibonacci[p - 2];
+        total = n1+n2;
+        fibonacci: append(total);
+        i += 1;
+    end
+    exeunt with fibonacci[n];
+end
+# memory stress test
+func fib_recursive(n):
+    if n < 2 then 
+        exeunt with n;
+    end
+    exeunt with fib_recursive(n-1) + fib_recursive(n - 2);
+end
+
+func test_recursive(n, maximum):
+    print(str(n));
+    n += 1;
+    if n >= maximum then
+        exeunt with n;
+    end
+    exeunt with test_recursive(n, maximum);
+end
+assert(test_recursive(0, 10), 10, "basic recursive calls");

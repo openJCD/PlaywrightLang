@@ -43,7 +43,19 @@ internal class Game1 : Game
         
         PwInstance actorTestInstance = new PwActor("ronnie").AsPwInstance();
         state.ExecuteFunction("test_external_calls", actorTestInstance);
+
+        float fib_n = 20;
+        sw.Restart();
+        var place= state.ExecuteFunction("fib", fib_n);
+        sw.Stop();
+        Console.WriteLine($"Evaluated non-recusive fibonacci to {place} in {sw.ElapsedMilliseconds} ms.");
+
+        sw.Restart();
+        place = state.ExecuteFunction("fib_recursive", fib_n);
+        sw.Stop();
+        Console.WriteLine($"Evaluated recursive fibonacci to {place} in {sw.ElapsedMilliseconds} ms.");
         base.Initialize();
+        
     }
 
     protected override void LoadContent()
