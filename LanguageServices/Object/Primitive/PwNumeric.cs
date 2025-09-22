@@ -86,6 +86,12 @@ internal class PwNumeric (float val) : PwObjectClass
     {
         return (left <= right);
     }
+
+    [PwItem("__neg__")]
+    public float PwNeg()
+    {
+        return (-Value);
+    }
     
     [PwItem("to_string")]
     public string ToString()

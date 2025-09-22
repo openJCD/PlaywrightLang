@@ -38,51 +38,60 @@ public class PwState
         RegisterType<PwFunction>("function");
         RegisterGlobalFunctions(_defaults);
     }
-    public List<Token> LoadFile(string path)
+    public List<Token> LoadFile(string path, bool verbose = false)
     {
         Stream s = File.OpenRead(path);
         StreamReader sr = new StreamReader(s);
         Tokeniser = new Tokeniser(sr.ReadToEnd());
-        Console.WriteLine($"Playwright Lexer: File {path} -> Tokens: ");
         List<Token> tokens = Tokeniser.Tokenise();
-        int count = 0;
-        tokens.ForEach(t =>
+        if (verbose)
         {
-            Console.WriteLine($" {count} - {t.Type} {t.Value}");
-            count++;
-        });
+            Console.WriteLine($"Playwright Lexer: File {path} -> Tokens: ");
+            int count = 0;
+            tokens.ForEach(t =>
+            {
+                Console.WriteLine($" {count} - {t.Type} {t.Value}");
+                count++;
+            });
+        }
         return tokens;
     }
 
-    List<Token> LoadString(string s)
+    List<Token> LoadString(string s, bool verbose = false)
     {
         Tokeniser = new Tokeniser(s);
-        Console.WriteLine("• Playwright Lexer: String Input -> Tokens: ");
         List<Token> tokens = Tokeniser.Tokenise();
-        int count = 0;
-        tokens.ForEach(t =>
+        if (verbose)
         {
-            Console.WriteLine($" {count} - {t.Type} {t.Value}");
-            count++;
-        });
+            Console.WriteLine("• Playwright Lexer: String Input -> Tokens: ");
+            int count = 0;
+            tokens.ForEach(t =>
+            {
+                Console.WriteLine($" {count} - {t.Type} {t.Value}");
+                count++;
+            });
+        }
         return tokens;
     }
     
-    public PwAst ParseString(string input)
+    public PwAst ParseString(string input, bool verbose = false)
     { 
         PwAst tree = parser.Parse();
-        Console.Write(tree.ToPrettyString(0));
+        if (verbose) Console.Write(tree.ToPrettyString(0));
         return tree;
     }
 
-    public PwAst ParseFile(string filepath)
+    public PwAst ParseFile(string filepath, bool verbose = false)
     {
-        parser = new Parser(LoadFile(filepath));
+        parser = new Parser(LoadFile(filepath, verbose));
         Stopwatch timer = Stopwatch.StartNew();
         PwAst tree = parser.Parse();
         timer.Stop();
-        Parser.Log($"Done in {timer.ElapsedMilliseconds}ms");
-        Parser.Log(tree.ToPrettyString(0) ?? string.Empty);
+        if (verbose)
+        {
+            Parser.Log($"Done in {timer.ElapsedMilliseconds}ms");
+            Parser.Log(tree.ToPrettyString(0) ?? string.Empty);
+        }
         return tree;
     }
 

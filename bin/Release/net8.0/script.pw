@@ -1,24 +1,12 @@
-﻿enter ronnie as actor("ronnie");
-
-func hello():
-    enter james as actor("james");
-    ronnie: says("hello, james");
-    james:  says("what's up, ronnie");
-    
-    func inner_func():
-        ronnie: says("i am talking from inside a closure");
-        ronnie: says(str(2 == 2));
-        ronnie: says(str(2 != 2));
-    end
-    
-    f = inner_func;
-    f();
+﻿func fn():
+    print("this is a function");
+    exeunt;
+    print("this should not print");
 end
 
-func add_and_say(left, right):
-    ronnie: says( str(left + right) );
+func pure_fn(x):
+    exeunt with x * x;
 end
 
-hello();
-add_and_say(3, 5);
-james: says("hey!");
+print("23 squared is " + str(pure_fn(23)));
+fn();

@@ -15,7 +15,12 @@ func test_scopes():
         a += 1;
     end
     inner_scope();
-    assert(a, 2, "inner scope sets outer variable correctly...");        
+    assert(a, 2, "inner function sets outer variable correctly...");        
+    if true then
+        b = "hello";
+    end
+    print ("if no error is thrown here, there is a problem:" + str(b));
+    # FAIL
 end
 
 func test_arithmetic():
@@ -45,7 +50,7 @@ end
 func test_external_calls(example_actor):
     print("##### THIS IS BEING CALLED EXTERNALLY #####");
     print("original name: " + example_actor: name); # should print whatever name the actor originally had.
-    example_actor:name = "test name"; # sets the name of the actor to "test name".
+    example_actor: name = "test name"; # sets the name of the actor to "test name".
     assert(example_actor: name, "test name", "example_actor name change"); # should be "test name"
     # PASS
 end
@@ -75,7 +80,6 @@ func test_relational_and_equality():
 end
 
 func test_assignment():
-
     print ("##### TESTING ARITHMETIC ASSIGNMENT OPERATIONS #####");
     var1 = 0;
     var2 = 2;
@@ -166,6 +170,7 @@ example_list = ["one", "two", "three", ronnie_reborn, "five"];
 test_arithmetic();
 test_instantiation();
 test_return();
+test_scopes();
 test_relational_and_equality();
 test_string_concatenation();
 test_assignment();
@@ -181,7 +186,7 @@ assert(b(1, 2), "less", "third branch");
 
 test_scopes();
 
-# the big performance test:
+# the basic performance test:
 func fib(n):
     fibonacci = [0, 1];
     i = 0;
@@ -195,20 +200,35 @@ func fib(n):
     end
     exeunt with fibonacci[n];
 end
+
+func fib_efficient(n):
+    i means 0;
+    last_number = 0;
+    current_number = 1;
+    
+    while i less than n do
+        current_number = last_number + current_number;
+        last_number = current_number;
+        i += 1;
+    end
+    exeunt with last_number;
+end
+
 # memory stress test
 func fib_recursive(n):
-    if n < 2 then 
+    if n < 2 then
         exeunt with n;
     end
     exeunt with fib_recursive(n-1) + fib_recursive(n - 2);
 end
 
+
 func test_recursive(n, maximum):
-    print(str(n));
     n += 1;
     if n >= maximum then
         exeunt with n;
     end
     exeunt with test_recursive(n, maximum);
 end
+
 assert(test_recursive(0, 10), 10, "basic recursive calls");

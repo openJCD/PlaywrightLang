@@ -33,6 +33,7 @@ internal class Game1 : Game
     protected override void Initialize()
     {
         state = new PwState();
+        /*
         // run tests.
         Stopwatch sw = new Stopwatch();
         PwAst f = state.ParseFile("tests.pw");
@@ -51,11 +52,15 @@ internal class Game1 : Game
         Console.WriteLine($"Evaluated non-recusive fibonacci to {place} in {sw.ElapsedMilliseconds} ms.");
 
         sw.Restart();
-        place = state.ExecuteFunction("fib_recursive", fib_n);
+        place = state.ExecuteFunction("fib_efficient", fib_n);
         sw.Stop();
-        Console.WriteLine($"Evaluated recursive fibonacci to {place} in {sw.ElapsedMilliseconds} ms.");
-        base.Initialize();
+        Console.WriteLine($"Evaluated efficient (non-array) fibonacci to {place} in {sw.ElapsedMilliseconds} ms.");
+        */
+        state.RegisterType<PwProp>("prop");
+        PwAst s = state.ParseFile("script.pw");
+        state.ExecuteChunk(s);
         
+        base.Initialize();
     }
 
     protected override void LoadContent()

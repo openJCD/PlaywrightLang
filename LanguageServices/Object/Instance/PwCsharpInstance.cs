@@ -13,7 +13,6 @@ internal class PwCsharpInstance : PwInstance
     private Dictionary<string, PropertyInfo> _csProperties;
     internal PwCsharpInstance(PwObjectClass pwClass) : base()
     {
-        
         _pwClass = pwClass;
         _type = pwClass.GetType();
         InstanceName = _type.Name;
@@ -69,8 +68,6 @@ internal class PwCsharpInstance : PwInstance
         {   
             _csProperties[memberName].SetValue(_pwClass, pwInstance.GetUnderlyingObject());
         }
-        
-        _csFields[memberName].SetValue(_pwClass, pwInstance.GetUnderlyingObject());
     }
 
     public override PwInstance Get(string memberName)

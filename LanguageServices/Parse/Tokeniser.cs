@@ -168,11 +168,11 @@ public class Tokeniser
                     if (Peek() == '\n')
                         Console.Error.WriteLine("Fatal error: Unterminated one-line string.");
                     // handle escape characters (does not work if they are not separated by a space.)
-                    if (Peek() == '\\')
-                    {
-                        Consume();
-                        _bufCurrent += Consume();
-                    }
+                    // if (Peek() == '\\')
+                    // {
+                    //     Consume();
+                    //     _bufCurrent += Consume();
+                    // }
                 }
 
                 Consume();

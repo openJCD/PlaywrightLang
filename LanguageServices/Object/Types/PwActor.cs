@@ -19,10 +19,10 @@ internal class PwActor : PwObjectClass
     public string Name;
     
     [PwItem("x")]
-    public int XPos { get; set; }
+    public float XPos { get; set; }
     
     [PwItem("y")]
-    public int YPos { get; set; }
+    public float YPos { get; set; }
 
     public PwActor(string name) : base()
     {
